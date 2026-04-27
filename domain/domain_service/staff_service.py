@@ -1,7 +1,7 @@
+from domain.custom_error import DuplicateUsernameError
 from domain.interfaces import StaffRepository
 from domain.staff_entities import Staff
-from domain.value_object import Username, HashedPassword
-from domain.custom_error import DuplicateUsernameError
+from domain.value_object import Username
 
 
 class StaffService:
@@ -33,7 +33,7 @@ class StaffService:
         if self.staff_repo and self.staff_repo.get_by_username(Username(id=username_str)):
             raise DuplicateUsernameError(f'ชื่อ {username_str} มีคนใช้แล้ว')
 
-    def authenticate_staff(self, username_str: str, plain_password: str) -> Optional[Staff]:
+    def authenticate_staff(self, username_str: str, plain_password: str) -> Staff | None:
         """
         กระบวนการยืนยันตัวตนพนักงาน
         """
