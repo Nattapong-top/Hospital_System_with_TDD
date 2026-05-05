@@ -202,6 +202,19 @@ def new_staff_doctor():
     )
 
 @fixture
+def new_staff_nurse():
+    return Staff.register(
+        username_str="nontanan-nan",
+        password_str="nontanan_12123", # ส่งรหัสสดเข้าไป
+        national_id_str="1234567890123",
+        first_name_str="นนทนัน",
+        last_name_str="พยาบาลดี",
+        dob_year=1998, dob_month=1, dob_day=31,
+        phone_number_str="0888888888",
+        role=StaffRole.NURSE
+    )
+
+@fixture
 def InMem_staff_repo():
     return InMemoryStaffRepository()
 
@@ -223,11 +236,13 @@ def new_register_staff(staff_service):
     )
     return new_staff
 
+
+
 @fixture
 def new_consultation(new_queue, new_staff_doctor):
     return Consultation(
         queue_id=new_queue.id,
-        doctor_id=new_staff_doctor.staff_id,
+        doctor=new_staff_doctor,
         patient_id=new_queue.patient_id,
         vital_signs=new_queue.vital_signs,
     )

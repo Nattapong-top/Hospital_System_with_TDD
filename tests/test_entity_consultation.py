@@ -8,7 +8,7 @@ from tests.conftest import new_staff_doctor, new_patient
 def test_create_consultation_should_have_correct_initial_data(new_queue, new_staff_doctor, new_patient):
     start_consul = Consultation(
         queue_id=new_queue.id,
-        doctor_id=new_staff_doctor.staff_id,
+        doctor=new_staff_doctor,
         patient_id=new_queue.patient_id,
         vital_signs=new_queue.vital_signs,
     )
@@ -17,7 +17,7 @@ def test_create_consultation_should_have_correct_initial_data(new_queue, new_sta
     assert isinstance(start_consul, Consultation)
     assert start_consul.queue_id == new_queue.id
     assert start_consul.patient_id == new_queue.patient_id
-    assert start_consul.doctor_id == new_staff_doctor.staff_id
+    assert start_consul.doctor.staff_id == new_staff_doctor.staff_id
     assert start_consul.status.value == 'กำลังพบหมอ'
     assert start_consul.version.number == 1
     assert start_consul.started_at is not None
