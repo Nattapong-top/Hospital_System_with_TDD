@@ -7,13 +7,14 @@ from pydantic import Field
 from domain.custom_error import InvalidStatusTransitionError, MissingDiagnosisError, \
     InvalidCancelRequestError
 from domain.entities import DomainEntity
+from domain.staff_entities import Staff
 from domain.value_object import VitalSigns, Diagnosis, Version, QueueStatus
 
 
 class Consultation(DomainEntity):
     queue_id: UUID = Field(default_factory=uuid4)
     queue_id: UUID
-    doctor_id: UUID
+    doctor: Staff
     patient_id: UUID
     vital_signs: VitalSigns
     diagnosis: Optional[Diagnosis] = None
