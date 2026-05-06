@@ -4,6 +4,7 @@ from datetime import date
 from typing import Optional, List
 from uuid import UUID
 
+from domain.consultation_entities import Consultation
 from domain.entities import Queue, Patient
 from domain.staff_entities import Staff
 from domain.value_object import NationalID, Username
@@ -82,4 +83,13 @@ class StaffRepository(ABC):
     @abstractmethod
     def get_by_national_id_staff(self, national_id: NationalID) -> Optional[NationalID]:
         """ค้นหาพนักงานด้วย national_id"""
+        pass
+
+class ConsultationRepository(ABC):
+    @abstractmethod
+    def save(self, consultation: Consultation) -> None:
+        pass
+
+    @abstractmethod
+    def get_by_consultation_id(self, consultation_id: UUID) -> Consultation:
         pass

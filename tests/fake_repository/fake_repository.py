@@ -3,8 +3,9 @@ from datetime import date
 from typing import List, Optional
 from uuid import UUID
 
+from domain.consultation_entities import Consultation
 from domain.entities import Patient, Queue
-from domain.interfaces import PatientRecord, QueueRecord, StaffRepository
+from domain.interfaces import PatientRecord, QueueRecord, StaffRepository, ConsultationRepository
 from domain.staff_entities import Staff
 from domain.value_object import NationalID, QueueStatus, Username
 
@@ -82,3 +83,14 @@ class InMemoryStaffRepository(StaffRepository):
 
     def get_by_national_id_staff(self, national_id: NationalID) -> Optional[Staff]:
         return next((s for s in self._staffs.values() if s.national_id == national_id), None)
+
+
+class InMemConsulRepo(ConsultationRepository):
+    def __init__(self) -> None:
+        self._consultations: dict[UUID, Consultation] = {}
+
+    def save(self, consultation: Consultation) -> None:
+        self._consultations[consultation.id] = consultation
+
+    def get_by_consultation_id(self, consultation_id: UUID) -> Consultation | None:
+        return self._consultations.get(consultation_id, None)
