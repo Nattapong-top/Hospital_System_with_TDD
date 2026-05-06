@@ -27,6 +27,8 @@ class ExaminationService:
         self.consultation_repo.save(new_consultation)
         return new_consultation
 
+    def get_by_consultation_id(self, consultation_id: UUID) -> Consultation:
+        return self.consultation_repo.get_by_consultation_id(consultation_id)
 
 
 
