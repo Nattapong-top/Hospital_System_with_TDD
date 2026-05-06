@@ -16,7 +16,7 @@ from domain.value_object import (
     PhoneNumber, Name, DateOfBirth, NationalID, Temperature, Weight, Height,
     BloodPressure, VitalSigns, QueueStatus, \
     Number, Version, StaffRole)
-from tests.fake_repository.fake_repository import FakeQueueRecord, InMemoryStaffRepository
+from tests.fake_repository.fake_repository import FakeQueueRecord, InMemoryStaffRepository, InMemConsulRepo
 
 
 # 🚩 1. ตัวคุมระบบ: เคลียร์ทุกอย่างก่อนเริ่มเทสแต่ละครั้ง
@@ -217,6 +217,10 @@ def new_staff_nurse():
 @fixture
 def InMem_staff_repo():
     return InMemoryStaffRepository()
+
+@fixture
+def InMem_consul_repo():
+    return InMemConsulRepo()
 
 @fixture
 def staff_service(InMem_staff_repo):
