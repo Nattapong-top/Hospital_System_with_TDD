@@ -1,8 +1,8 @@
 # 🏥 Hospital_System_with_TDD
 
-![Pytest Status](https://github.com/<USER_NAME>/<REPO_NAME>/actions/workflows/<FILE_NAME>.yml/badge.svg)
+![Pytest Status](https://github.com/nattapong-top/Hospital_System_with_TDD/actions/workflows/python-app.yml/badge.svg)
 
-ระบบบริหารจัดการงานบริการโรงพยาบาล (Core Domain & API) พัฒนาด้วยสถาปัตยกรรม **Domain-Driven Design (DDD)** โดยยึดหลักความถูกต้องและเสถียรภาพสูงสุดผ่านกระบวนการ **TDD (Test-Driven Development)**
+ระบบบริหารจัดการงานบริการโรงพยาบาล (Core Domain & API) พัฒนาด้วยสถาปัตยกรรม **Domain-Driven Design (DDD)** โดยยึดหลักความถูกต้องและเสถียรภาพผ่านกระบวนการ **TDD (Test-Driven Development)**
 
 ---
 
@@ -48,9 +48,9 @@
 ---
 
 ## 👷 CI/CD Workflow
-ระบบใช้ **GitHub Actions** ในการรัน Automated Testing (ออ-โท-เม-เทด เทส-ติง) ทุกครั้งที่มีการ Push โค้ด:
+ระบบใช้ **GitHub Actions** ในการรัน Automated Testing ทุกครั้งที่มีการ Push โค้ด:
 - **Test Suite:** รัน `pytest` ครอบคลุม Unit & Integration Tests ทั้งหมด 195 เคส
-- **Environment:** ทดสอบบน Python 3.12 (หรือเวอร์ชันที่ป๋าใช้) เพื่อความเสถียรของระบบ
+- **Environment:** ทดสอบบน Python 3.12 เพื่อความเสถียรของระบบ
 
 ---
 
@@ -63,5 +63,5 @@
 - `test_value_object.py`: ทดสอบความถูกต้องของข้อมูล (Deep Validation)
 
 ```bash
-# รันเทสทั้งหมดในเครื่องป๋า
+# รันเทสทั้งหมดในเครื่อง
 pytest tests/
