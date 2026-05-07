@@ -3,7 +3,7 @@ from datetime import datetime, date
 from typing import Tuple, Optional
 from uuid import UUID
 
-from domain.custom_error import DuplicationQueueError, QueueNotFoundError
+from domain.custom_error import DuplicationQueueError, QueueNotFoundError, VitalSignsMissingError
 from domain.entities import Queue
 from domain.interfaces import QueueRecord
 from domain.value_object import Number, VitalSigns, QueueStatus, Diagnosis
@@ -95,7 +95,7 @@ class QueueService:
             raise QueueNotFoundError(queue_id)
         return queue
 
-    def get_queue(self, queue_id: UUID) -> Queue | None:
+    def get_by_queue_id(self, queue_id: UUID) -> Queue | None:
         return self.queue_repo.get_by_queue_id(queue_id)
 
     def get_all_queues_today(self, today: date) -> list[Queue]:
