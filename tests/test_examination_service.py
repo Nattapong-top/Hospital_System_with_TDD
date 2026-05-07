@@ -2,6 +2,7 @@ from pytest import raises
 
 from domain.custom_error import PermissionDeniedError
 from domain.domain_service.examination_service import ExaminationService
+from domain.value_object import QueueStatus
 from tests.conftest import new_queue, new_staff_doctor, InMem_consul_repo
 from tests.fake_repository.fake_repository import InMemConsulRepo
 
@@ -56,3 +57,25 @@ def test_exam_service_start_consul_should_get_by_consul_id_form_repo(new_examina
     assert consul_db.doctor.staff_id == new_staff_doctor.staff_id
     assert consul_db.patient_id == new_queue.patient_id
     assert consul_db.status.value == 'กำลังพบหมอ'
+
+
+def test_start_consultation_should_update_queue_status_to_in_progress(new_queue, new_staff_doctor, queue_service,
+                                                                      queue_repo):
+    # 1. Arrange: เตรียมทั้ง Repo ของใบตรวจ และ Repo ของคิว
+    consul_repo = InMemConsulRepo()
+    queue_repo.save(new_queue)  # ใส่คิวเริ่มต้นเข้าไปก่อน (สถานะ WAITING)
+
+    # ฉีด QueueRepo เข้าไปใน ExaminationService ด้วย (หรือฉีด QueueService ก็ได้)
+    service = ExaminationService(consul_repo=consul_repo, queue_service=queue_service)
+
+    # 2. Act: เริ่มการตรวจผ่าน ExaminationService
+    service.start_consultation(
+        queue_id=new_queue.id,
+        doctor=new_staff_doctor,
+        patient_id=new_queue.patient_id,
+        vital_signs=new_queue.vital_signs
+    )
+
+    # 3. Assert: ไปแอบดูที่ QueueRepo ว่าคิวโดนเปลี่ยนสถานะหรือยัง
+    updated_queue = queue_service.get_by_queue_id(new_queue.id)
+    assert updated_queue.status.value == QueueStatus.IN_PROGRESS.value

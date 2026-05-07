@@ -121,7 +121,7 @@ def get_all_queues_today() -> list:
 @app.get("/api/queues/{queue_id}")
 def get_queue_status(queue_id: UUID) -> dict:
     qs = HospitalRegistry.queue_service()
-    queue = qs.get_queue(queue_id)
+    queue = qs.get_by_queue_id(queue_id)
     if not queue:
         raise HTTPException(status_code=404, detail="ไม่พบใบคิวนี้ในระบบ")
 
