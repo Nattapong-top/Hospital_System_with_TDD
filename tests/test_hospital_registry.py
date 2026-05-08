@@ -54,3 +54,16 @@ def test_hospital_registry_should_return_same_when_call_patient_registrar_instan
     second_call = HospitalRegistry.patient_registrar()
 
     assert first_call == second_call
+
+def test_hospital_registry_should_switch_to_new_exam_service(monkeypatch):
+    # 1. Arrange: ปลอมค่า Config ให้เปิดใช้งานของใหม่
+    # (สมมติป๋าทำไฟล์ core/config.py ไว้แล้ว)
+    from core.config import settings
+    monkeypatch.setattr(settings, "ENABLE_NEW_EXAMINATION_FLOW", True)
+    HospitalRegistry.reset() # เคลียร์ของเก่าในตู้ Singleton ทิ้งก่อนครับป๋า
+    # 2. Act: ไปเบิกตัว Service มา
+    service = HospitalRegistry.consultation_service()
+    # 3. Assert: เช็คว่าได้ของใหม่จริงๆ
+    from domain.domain_service.examination_service import ExaminationService
+    assert isinstance(service, ExaminationService)
+    assert not isinstance(service, QueueService)

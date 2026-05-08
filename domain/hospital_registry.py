@@ -19,6 +19,7 @@ class HospitalRegistry:
     _DB_PATH = None
     _patient_registrar = None
     _queue_service = None
+    _examination_service = None
 
     @classmethod
     def get_db_path(cls) -> str:
@@ -83,3 +84,26 @@ class HospitalRegistry:
     def configure_queue(cls, queue_repo):
         """เมธอดสำหรับขาโมดิฟาย: ยัด Repo เองกับมือ"""
         cls._queue_service = QueueService(queue_repo=queue_repo)
+
+    # เพิ่ม Method นี้ลงในคลาสครับป๋า
+    @classmethod
+    def consultation_service(cls):
+        from core.config import settings  # โหลด Config มาดูสวิตช์
+        from domain.domain_service.examination_service import ExaminationService
+
+        if settings.ENABLE_NEW_EXAMINATION_FLOW:
+            if cls._examination_service is None:
+                # --- ขั้นตอนประกอบร่าง (Wiring) ---
+                # ป๋าต้องมี Repo สำหรับบันทึกการตรวจด้วยนะป๋า
+                from infrastructure.sqlite_consultation_repository import SqlConsultationRepository
+                repo = SqlConsultationRepository(db_path=cls.get_db_path())
+
+                # ส่ง Repo และ QueueService (ที่มีอยู่แล้ว) เข้าไปให้มันครับป๋า
+                cls._examination_service = ExaminationService(
+                    consul_repo=repo,
+                    queue_service=cls.queue_service()
+                )
+            return cls._examination_service
+
+        # ถ้าสวิตช์ปิดอยู่ ป๋าอาจจะส่ง None หรือของเก่าไปก่อนครับ
+        return None
