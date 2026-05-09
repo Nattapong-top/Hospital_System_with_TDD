@@ -105,5 +105,5 @@ class HospitalRegistry:
                 )
             return cls._examination_service
 
-        # ถ้าสวิตช์ปิดอยู่ ป๋าอาจจะส่ง None หรือของเก่าไปก่อนครับ
-        return None
+        # ถ้าสวิตช์ปิดอยู่ ส่งของเก่าไปก่อนครับ
+        return cls.queue_service()
