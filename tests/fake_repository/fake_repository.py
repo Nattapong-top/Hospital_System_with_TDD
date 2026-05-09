@@ -94,3 +94,6 @@ class InMemConsulRepo(ConsultationRepository):
 
     def get_by_consultation_id(self, consultation_id: UUID) -> Consultation | None:
         return self._consultations.get(consultation_id, None)
+
+    def get_by_queue_id(self, queue_id: UUID) -> Consultation | None:
+        return self._consultations.get(queue_id, None)

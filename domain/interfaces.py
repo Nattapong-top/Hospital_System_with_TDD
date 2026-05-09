@@ -91,5 +91,9 @@ class ConsultationRepository(ABC):
         pass
 
     @abstractmethod
-    def get_by_consultation_id(self, consultation_id: UUID) -> Consultation:
+    def get_by_consultation_id(self, consultation_id: UUID) -> Consultation | None:
+        pass
+
+    @abstractmethod
+    def get_by_queue_id(self, queue_id: UUID) -> Consultation | None:
         pass
