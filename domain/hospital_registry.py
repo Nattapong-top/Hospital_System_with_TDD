@@ -1,13 +1,17 @@
 # domain/hospital_registry.py
 from pathlib import Path
+from typing import TYPE_CHECKING
 
-# --- โซนงานบริหาร (Domain Service) ---
-from domain.domain_service.patient_registrar import PatientRegistrar
-from domain.domain_service.queue_service import QueueService
+from core.config import settings  # settings ไว้ที่หัวได้ เพราะเป็นแค่ข้อมูลตั้งค่า (Config)
 
-# --- โซนงานช่าง (Infrastructure) ---
-from infrastructure.sqlite_patient_repository import SqlPatientRepository
-from infrastructure.sqlite_queue_repository import SqlQueueRepository
+# บล็อกนี้จะทำงานเฉพาะในสายตาของ PyCharm/Mypy เท่านั้นครับป๋า
+if TYPE_CHECKING:
+    from domain.domain_service.examination_service import ExaminationService
+    from domain.domain_service.patient_registrar import PatientRegistrar
+    from domain.domain_service.queue_service import QueueService
+    from infrastructure.sqlite_patient_repository import SqlPatientRepository
+    from infrastructure.sqlite_queue_repository import SqlQueueRepository
+    from infrastructure.sqlite_consultation_repository import SqlConsultationRepository
 
 
 class HospitalRegistry:
@@ -15,95 +19,110 @@ class HospitalRegistry:
     HospitalRegistry: ศูนย์บัญชาการ (Registry Pattern)
     ทำหน้าที่จัดการการสร้างและส่งมอบ Service/Repository ต่างๆ ให้กับระบบ
     """
-
+    _BASE_DIR = Path(__file__).resolve().parent.parent
     _DB_PATH = None
+
+    # ตู้เก็บพนักงาน (Singleton Cache)
+    _patient_repo = None
     _patient_registrar = None
     _queue_service = None
     _examination_service = None
 
     @classmethod
     def get_db_path(cls) -> str:
-        """ดึงตำแหน่งฐานข้อมูล (ถ้ายังไม่มีจะใช้ค่า Default)"""
+        """ดึงตำแหน่งฐานข้อมูลจาก Config"""
         if cls._DB_PATH is None:
-            # หาตำแหน่งโฟลเดอร์หลัก Hospital_System/ แล้วชี้ไปที่ database/hospital_database.db
-            base_dir = Path(__file__).resolve().parent.parent
-            cls._DB_PATH = str(base_dir / "database" / "hospital_database.db")
+            cls._DB_PATH = str(cls._BASE_DIR / "database" / settings.DB_NAME)
         return cls._DB_PATH
 
     @classmethod
-    def set_test_db(cls):
-        """🚩 สลับมาใช้ไฟล์สำหรับเทสโดยเฉพาะ (แทน :memory:)"""
+    def set_test_db(cls) -> None:
+        """🚩 สลับมาใช้ไฟล์สำหรับเทสโดยเฉพาะ"""
         cls.reset()
-        base_dir = Path(__file__).resolve().parent.parent
-        # ใช้ชื่อไฟล์แยกออกมา เพื่อไม่ให้ปนกับของจริง
-        cls._DB_PATH = str(base_dir / "database" / "test_database.db")
+        cls._DB_PATH = str(cls._BASE_DIR / "database" / "test_database.db")
 
     @classmethod
-    def reset(cls):
-        """ล้าง Instance ที่ค้างอยู่ (จำเป็นมากเวลาเทสหลายๆ รอบ)"""
+    def reset(cls) -> None:
+        """ล้าง Instance พนักงาน (ล้างเฉพาะพนักงาน เพื่อให้ Integration Test ไม่พัง)"""
         cls._patient_registrar = None
         cls._queue_service = None
+        cls._examination_service = None
+        cls._patient_repo = None
 
     @classmethod
-    def init_database(cls):
-        """เตรียมความพร้อม: สร้างโฟลเดอร์และตารางเริ่มต้น"""
-        path = cls.get_db_path()
+    def hard_reset(cls) -> None:
+        """ล้างให้หมดจดจริงๆ รวมทั้งเส้นทาง DB"""
+        cls.reset()
+        cls._DB_PATH = None
 
-        # ถ้าไม่ใช่โหมด "test_database.db" ให้สร้างโฟลเดอร์รอไว้เลย
+    @classmethod
+    def init_database(cls) -> None:
+        """เตรียมความพร้อม: สร้างโฟลเดอร์และตารางเริ่มต้น (ใช้ Local Import)"""
+        # นำเข้างานช่างเฉพาะตอนจะใช้งานเท่านั้น
+        from infrastructure.sqlite_patient_repository import SqlPatientRepository
+        from infrastructure.sqlite_queue_repository import SqlQueueRepository
+
+        path = cls.get_db_path()
         if path != "test_database.db":
             db_dir = Path(path).parent
             db_dir.mkdir(parents=True, exist_ok=True)
 
-        # สั่งให้ Repository ตรวจสอบและสร้างตาราง
         SqlPatientRepository(db_path=path)
         SqlQueueRepository(db_path=path)
 
     @classmethod
     def patient_registrar(cls) -> PatientRegistrar:
-        """เบิกตัวพยาบาลทะเบียน (Singleton)"""
+        """เบิกตัวพยาบาลทะเบียน (Local Import)"""
         if cls._patient_registrar is None:
-            repo = SqlPatientRepository(db_path=cls.get_db_path())
+            from domain.domain_service.patient_registrar import PatientRegistrar
+            from infrastructure.sqlite_patient_repository import SqlPatientRepository
 
+            repo = SqlPatientRepository(db_path=cls.get_db_path())
             cls._patient_registrar = PatientRegistrar(patient_repo=repo)
         return cls._patient_registrar
 
     @classmethod
     def queue_service(cls) -> QueueService:
-        """เบิกตัวแผนกคิว (Singleton)"""
+        """เบิกตัวแผนกคิว (Local Import)"""
         if cls._queue_service is None:
+            from domain.domain_service.queue_service import QueueService
+            from infrastructure.sqlite_queue_repository import SqlQueueRepository
+
             repo = SqlQueueRepository(db_path=cls.get_db_path())
             cls._queue_service = QueueService(queue_repo=repo)
         return cls._queue_service
 
     @classmethod
     def patient_repo(cls) -> SqlPatientRepository:
-        """เบิกตู้เหล็กเก็บคนไข้โดยตรง"""
-        return SqlPatientRepository(db_path=cls.get_db_path())
+        """เบิกตู้เก็บคนไข้ (Local Import)"""
+        if cls._patient_repo is None:
+            from infrastructure.sqlite_patient_repository import SqlPatientRepository
+            cls._patient_repo = SqlPatientRepository(db_path=cls.get_db_path())
+        return cls._patient_repo
 
     @classmethod
-    def configure_queue(cls, queue_repo):
-        """เมธอดสำหรับขาโมดิฟาย: ยัด Repo เองกับมือ"""
-        cls._queue_service = QueueService(queue_repo=queue_repo)
-
-    # เพิ่ม Method นี้ลงในคลาสครับป๋า
-    @classmethod
-    def consultation_service(cls):
-        from core.config import settings  # โหลด Config มาดูสวิตช์
-        from domain.domain_service.examination_service import ExaminationService
-
+    def consultation_service(cls) -> QueueService | ExaminationService:
+        """จุดสลับร่างระบบตรวจรักษา (Branch by Abstraction)"""
         if settings.ENABLE_NEW_EXAMINATION_FLOW:
-            if cls._examination_service is None:
-                # --- ขั้นตอนประกอบร่าง (Wiring) ---
-                # ป๋าต้องมี Repo สำหรับบันทึกการตรวจด้วยนะป๋า
-                from infrastructure.sqlite_consultation_repository import SqlConsultationRepository
-                repo = SqlConsultationRepository(db_path=cls.get_db_path())
-
-                # ส่ง Repo และ QueueService (ที่มีอยู่แล้ว) เข้าไปให้มันครับป๋า
-                cls._examination_service = ExaminationService(
-                    consul_repo=repo,
-                    queue_service=cls.queue_service()
-                )
-            return cls._examination_service
-
-        # ถ้าสวิตช์ปิดอยู่ ส่งของเก่าไปก่อนครับ
+            return cls._set_switch_to_new_exam_service()
         return cls.queue_service()
+
+    @classmethod
+    def _set_switch_to_new_exam_service(cls) -> ExaminationService:
+        """สร้างพนักงานใหม่ (Local Import)"""
+        if cls._examination_service is None:
+            from domain.domain_service.examination_service import ExaminationService
+            from infrastructure.sqlite_consultation_repository import SqlConsultationRepository
+
+            repo = SqlConsultationRepository(db_path=cls.get_db_path())
+            cls._examination_service = ExaminationService(
+                consul_repo=repo,
+                queue_service=cls.queue_service()
+            )
+        return cls._examination_service
+
+    @classmethod
+    def configure_queue(cls, queue_repo: SqlQueueRepository) -> None:
+        """เมธอดสำหรับขาโมดิฟาย: ยัด Repo เองกับมือ"""
+        from domain.domain_service.queue_service import QueueService
+        cls._queue_service = QueueService(queue_repo=queue_repo)
