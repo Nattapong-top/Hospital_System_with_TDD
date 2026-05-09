@@ -260,7 +260,7 @@ def new_register_staff(staff_service):
 def new_consultation(new_queue, new_staff_doctor):
     return Consultation(
         queue_id=new_queue.id,
-        doctor=new_staff_doctor,
+        doctor_id=new_staff_doctor.staff_id,
         patient_id=new_queue.patient_id,
         vital_signs=new_queue.vital_signs,
     )

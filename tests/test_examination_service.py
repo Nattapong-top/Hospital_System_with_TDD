@@ -45,7 +45,7 @@ def test_exam_service_start_consul_should_save_to_repo(new_queue, new_staff_doct
     consul_db = repo.get_by_consultation_id(consul.id)
     assert consul_db is not None
     assert consul_db.queue_id == new_queue.id
-    assert consul_db.doctor.staff_id == new_staff_doctor.staff_id
+    assert consul_db.doctor_id == new_staff_doctor.staff_id
     assert consul_db.patient_id == new_queue.patient_id
     assert consul_db.status.value == 'กำลังพบหมอ'
 
@@ -54,7 +54,7 @@ def test_exam_service_start_consul_should_get_by_consul_id_form_repo(new_examina
     consul_db = service.get_by_consultation_id(new_examination.id)
     assert consul_db is not None
     assert consul_db.queue_id == new_queue.id
-    assert consul_db.doctor.staff_id == new_staff_doctor.staff_id
+    assert consul_db.doctor_id == new_staff_doctor.staff_id
     assert consul_db.patient_id == new_queue.patient_id
     assert consul_db.status.value == 'กำลังพบหมอ'
 
