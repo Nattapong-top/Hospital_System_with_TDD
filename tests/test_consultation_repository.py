@@ -12,7 +12,7 @@ def test_consultation_repository_should_save_and_get_consultation_success(new_co
 
     assert found is not None
     assert found.id == new_consultation.id
-    assert found.doctor.staff_id == new_consultation.doctor.staff_id
+    assert found.doctor_id == new_consultation.doctor_id
 
 def test_consultation_repo_return_none_if_not_found():
     repo = InMemConsulRepo()

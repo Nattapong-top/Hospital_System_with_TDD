@@ -21,7 +21,7 @@ class ExaminationService:
 
         new_consultation = Consultation(
             queue_id=queue_id,
-            doctor=doctor,
+            doctor_id=doctor.staff_id,
             patient_id=patient_id,
             vital_signs=vital_signs
         )
