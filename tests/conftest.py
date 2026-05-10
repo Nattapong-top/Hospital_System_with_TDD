@@ -237,8 +237,8 @@ def new_examination(InMem_consul_repo, new_queue, new_staff_doctor, exam_service
     )
 
 @fixture
-def staff_service(InMem_staff_repo):
-    return StaffService(InMem_staff_repo)
+def staff_service():
+    return  HospitalRegistry.staff_service()
 
 @fixture
 def new_register_staff(staff_service):
