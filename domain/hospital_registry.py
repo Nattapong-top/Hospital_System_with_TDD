@@ -12,9 +12,11 @@ if TYPE_CHECKING:
     from domain.domain_service.examination_service import ExaminationService
     from domain.domain_service.patient_registrar import PatientRegistrar
     from domain.domain_service.queue_service import QueueService
+    from domain.domain_service.staff_service import StaffService
     from infrastructure.sqlite_patient_repository import SqlPatientRepository
     from infrastructure.sqlite_queue_repository import SqlQueueRepository
     from infrastructure.sqlite_consultation_repository import SqlConsultationRepository
+    from infrastructure.sqllite_staff_repository import SqlStaffRepository
 
 
 class HospitalRegistry:
