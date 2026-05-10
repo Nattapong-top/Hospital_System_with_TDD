@@ -4,6 +4,8 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from core.config import settings  # settings ไว้ที่หัวได้ เพราะเป็นแค่ข้อมูลตั้งค่า (Config)
+from domain.domain_service.staff_service import StaffService
+from infrastructure.sqllite_staff_repository import SqlStaffRepository
 
 # บล็อกนี้จะทำงานเฉพาะในสายตาของ PyCharm/Mypy เท่านั้นครับป๋า
 if TYPE_CHECKING:
@@ -28,6 +30,7 @@ class HospitalRegistry:
     _patient_registrar = None
     _queue_service = None
     _examination_service = None
+    _staff_service = None
 
     @classmethod
     def get_db_path(cls) -> str:
@@ -49,6 +52,8 @@ class HospitalRegistry:
         cls._queue_service = None
         cls._examination_service = None
         cls._patient_repo = None
+        cls._staff_service = None
+
 
     @classmethod
     def hard_reset(cls) -> None:
@@ -62,6 +67,7 @@ class HospitalRegistry:
         # นำเข้างานช่างเฉพาะตอนจะใช้งานเท่านั้น
         from infrastructure.sqlite_patient_repository import SqlPatientRepository
         from infrastructure.sqlite_queue_repository import SqlQueueRepository
+        from infrastructure.sqllite_staff_repository import SqlStaffRepository
 
         path = cls.get_db_path()
         if path != "test_database.db":
@@ -70,6 +76,7 @@ class HospitalRegistry:
 
         SqlPatientRepository(db_path=path)
         SqlQueueRepository(db_path=path)
+        SqlStaffRepository(db_path=path)
 
     @classmethod
     def patient_registrar(cls) -> PatientRegistrar:
@@ -92,6 +99,17 @@ class HospitalRegistry:
             repo = SqlQueueRepository(db_path=cls.get_db_path())
             cls._queue_service = QueueService(queue_repo=repo)
         return cls._queue_service
+
+    @classmethod
+    def staff_service(cls) -> StaffService:
+        """เบิกตัวแผนกบุคคล/พนักงาน (Local Import)"""
+        if cls._staff_service is None:
+            from domain.domain_service.staff_service import StaffService
+            from infrastructure.sqllite_staff_repository import SqlStaffRepository
+
+            repo = SqlStaffRepository(db_path=cls.get_db_path())
+            cls._staff_service = StaffService(staff_repo=repo)
+        return cls._staff_service
 
     @classmethod
     def patient_repo(cls) -> SqlPatientRepository:

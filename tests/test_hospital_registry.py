@@ -4,11 +4,13 @@ from domain.domain_service.examination_service import ExaminationService
 
 from domain.domain_service.patient_registrar import PatientRegistrar
 from domain.domain_service.queue_service import QueueService
+from domain.domain_service.staff_service import StaffService
 # --- โซนงานบริหาร (Domain Service): นำเข้าตัวพยาบาลและเจ้าหน้าที่ ---
 from domain.hospital_registry import HospitalRegistry
 from infrastructure.sqlite_patient_repository import SqlPatientRepository
 # --- โซนงานช่าง (Infrastructure): นำเข้าตู้เก็บของจริง ---
 from infrastructure.sqlite_queue_repository import SqlQueueRepository
+from infrastructure.sqllite_staff_repository import SqlStaffRepository
 
 
 def test_hospital_registry_should_return_queue_service_when_fake_repo(fake_repo):
@@ -47,6 +49,16 @@ def test_hospital_registry_should_get_patient_registrar_with_auto_wiring():
     assert isinstance(registrar, PatientRegistrar)
     # ตรวจว่าพยาบาลถือตู้ SQLite จริงหรือเปล่า
     assert isinstance(registrar.patient_repo, SqlPatientRepository)
+
+
+def test_hospital_registry_should_get_staff_service_with_auto_wiring():
+    """เทสว่า Registry สามารถประกอบร่างพยาบาลทะเบียนกับตู้ SQLite ให้เราได้เอง"""
+    registrar = HospitalRegistry.staff_service()
+
+    # ตรวจความถูกต้อง
+    assert isinstance(registrar, StaffService)
+    # ตรวจว่าพยาบาลถือตู้ SQLite จริงหรือเปล่า
+    assert isinstance(registrar.staff_repo, SqlStaffRepository)
 
 
 def test_hospital_registry_should_return_same_when_call_patient_registrar_instance():
