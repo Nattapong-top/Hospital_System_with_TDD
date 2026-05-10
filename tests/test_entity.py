@@ -207,10 +207,11 @@ def test_should_change_status_from_in_progress_to_completed(queue, diagnosis):
     assert queue.status == QueueStatus.COMPLETED
     assert queue.diagnosis == diagnosis
 
-def test_should_raise_error_when_complete_visit_but_not_diagnosis(queue):
-    queue.status = QueueStatus.IN_PROGRESS
-    with raises(MissingDiagnosisError):
-        queue.complete_visit(diagnosis=None)
+# *** ยกเลิกการตรวจรับผลวินัจฉัยจาก queue
+# def test_should_raise_error_when_complete_visit_but_not_diagnosis(queue):
+#     queue.status = QueueStatus.IN_PROGRESS
+#     with raises(MissingDiagnosisError):
+#         queue.complete_visit(diagnosis=None)
 
 
 def test_should_raise_error_when_IN_PROGRESS_but_status_is_WAITTING(queue):

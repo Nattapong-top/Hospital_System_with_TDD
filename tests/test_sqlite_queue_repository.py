@@ -68,8 +68,7 @@ def test_sqlite_queue_repo_should_save_extremely_long_diagnosis(queue_repo, queu
             name='Paracetamol',
             strength='500mg',
             frequency='วันละ 3 ครั้ง หลังอาหาร')]
-        )
-    )
+    ))
     queue_repo.save(queue)
     retrieved = queue_repo.get_by_queue_id(queue.id)
 

@@ -79,3 +79,27 @@ def test_start_consultation_should_update_queue_status_to_in_progress(new_queue,
     # 3. Assert: ไปแอบดูที่ QueueRepo ว่าคิวโดนเปลี่ยนสถานะหรือยัง
     updated_queue = queue_service.get_by_queue_id(new_queue.id)
     assert updated_queue.status.value == QueueStatus.IN_PROGRESS.value
+
+
+def test_finished_consultation_should_update_queue_completed(new_examination, diagnosis, exam_service, new_staff_doctor,
+                                                             queue_service):
+    finish_consul = exam_service.finish_consultation(
+        consultation_id=new_examination.id,
+        queue_id=new_examination.queue_id,
+        doctor=new_staff_doctor,
+        diagnosis=diagnosis,
+    )
+    assert finish_consul.status.value == new_examination.status.value
+    assert finish_consul is not None
+    assert finish_consul.id == new_examination.id
+    assert finish_consul.queue_id == new_examination.queue_id
+    assert finish_consul.doctor_id == new_examination.doctor_id
+
+    finish_consul_db = exam_service.get_by_consultation_id(finish_consul.id)
+    assert finish_consul_db is not None
+    assert finish_consul_db.id == new_examination.id
+    assert finish_consul_db.patient_id == finish_consul.patient_id
+    assert finish_consul_db.status.value == QueueStatus.COMPLETED.value
+
+    updated_queue = queue_service.get_by_queue_id(new_examination.queue_id)
+    assert updated_queue.status.value == QueueStatus.COMPLETED.value

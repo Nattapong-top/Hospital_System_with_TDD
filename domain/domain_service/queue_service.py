@@ -27,7 +27,7 @@ class QueueService:
         self.queue_repo.update(queue)
         return queue
 
-    def complete_visit(self, queue_id: UUID, diagnosis: Diagnosis) -> Queue:
+    def complete_visit(self, queue_id: UUID, diagnosis: Diagnosis = None) -> Queue:
         queue = self._get_queue_or_raise(queue_id=queue_id)
         queue.complete_visit(diagnosis)
         self.queue_repo.update(queue)
