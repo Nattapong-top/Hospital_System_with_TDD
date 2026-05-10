@@ -90,6 +90,9 @@ class ConsultationRepository(ABC):
     def save(self, consultation: Consultation) -> None:
         pass
 
+    def update(self, consultation: Consultation) -> None:
+        pass
+
     @abstractmethod
     def get_by_consultation_id(self, consultation_id: UUID) -> Consultation | None:
         pass

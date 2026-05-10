@@ -113,7 +113,7 @@ class Queue(DomainEntity):
         self.version = self.version.increment()
 
     def complete_visit(self, diagnosis: Diagnosis) -> None:
-        self._validate_in_progress_status(diagnosis=diagnosis)
+        self._validate_in_progress_status()
         self.status = QueueStatus.COMPLETED
         self.diagnosis = diagnosis
         self.version = self.version.increment()
@@ -127,12 +127,9 @@ class Queue(DomainEntity):
         if self.status == QueueStatus.COMPLETED:
             raise InvalidCancelRequestError(f'ไม่สามารถยกเลิกการตรวจได้ เพราะสถานะปัจจุบันคือ {self.status.value}')
 
-    def _validate_in_progress_status(self, diagnosis: Diagnosis) -> None:
+    def _validate_in_progress_status(self) -> None:
         if self.status != QueueStatus.IN_PROGRESS:
             raise InvalidStatusTransitionError(f'ไม่สามารถจบการตรวจได้ เพราะสถานะปัจจุบันคือ {self.status.value}')
-
-        if diagnosis is None:
-            raise MissingDiagnosisError()
 
     def _validate_status(self):
         if self.status != QueueStatus.WAITING:

@@ -11,6 +11,7 @@ class InvalidStatusTransitionError(DomainError):
         self.message = message
         super().__init__(self.message)
 
+
 class DoNotChangeIDError(DomainError):
     def __init__(self, message: str):
         self.message = message
@@ -42,6 +43,7 @@ class VitalSignsMissingError(DomainError):
         self.message = message
         super().__init__(self.message)
 
+
 class QueueNotFoundError(DomainError):
     def __init__(self, queue_id=None):
         if queue_id:
@@ -50,12 +52,23 @@ class QueueNotFoundError(DomainError):
             self.message = 'ไม่พบคิวที่ระบุครับ'
         super().__init__(self.message)
 
+
 class DuplicateUsernameError(DomainError):
     def __init__(self, message: str):
         self.message = message
         super().__init__(self.message)
 
+
 class PermissionDeniedError(DomainError):
     def __init__(self, message: str):
         self.message = message
+        super().__init__(self.message)
+
+
+class ConsultationNotFoundError(DomainError):
+    def __init__(self, consultation_id=None):
+        if consultation_id:
+            self.message = f'ไม่พบข้อมูล ID: {consultation_id} นี้ในระบบครับ'
+        else:
+            self.message = 'ไม่พบข้อมูลที่ระบุครับ'
         super().__init__(self.message)

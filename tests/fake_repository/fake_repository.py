@@ -92,6 +92,9 @@ class InMemConsulRepo(ConsultationRepository):
     def save(self, consultation: Consultation) -> None:
         self._consultations[consultation.id] = consultation
 
+    def update(self, consultation: Consultation) -> None:
+        self._consultations[consultation.id] = consultation
+
     def get_by_consultation_id(self, consultation_id: UUID) -> Consultation | None:
         return self._consultations.get(consultation_id, None)
 

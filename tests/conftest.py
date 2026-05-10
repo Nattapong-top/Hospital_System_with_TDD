@@ -224,12 +224,12 @@ def InMem_consul_repo():
     return InMemConsulRepo()
 
 @fixture
-def exam_service(InMem_consul_repo):
-    return ExaminationService(InMem_consul_repo)
+def exam_service(InMem_consul_repo, queue_service):
+    return ExaminationService(InMem_consul_repo, queue_service)
 
 @fixture
-def new_examination(InMem_consul_repo, new_queue, new_staff_doctor):
-    return ExaminationService(InMem_consul_repo).start_consultation(
+def new_examination(InMem_consul_repo, new_queue, new_staff_doctor, exam_service):
+    return exam_service.start_consultation(
         queue_id=new_queue.id,
         doctor=new_staff_doctor,
         patient_id=new_queue.patient_id,
