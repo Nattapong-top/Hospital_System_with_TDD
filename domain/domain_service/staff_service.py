@@ -58,3 +58,5 @@ class StaffService:
         valid_username = Username(id=username_str)
         return self.staff_repo.get_by_username(valid_username.id)
 
+    def update(self, staff: Staff) -> None:
+        self.staff_repo.update(staff)
