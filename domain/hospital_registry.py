@@ -4,6 +4,8 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from core.config import settings  # settings ไว้ที่หัวได้ เพราะเป็นแค่ข้อมูลตั้งค่า (Config)
+from domain.domain_service.staff_service import StaffService
+from infrastructure.sqllite_staff_repository import SqlStaffRepository
 
 # บล็อกนี้จะทำงานเฉพาะในสายตาของ PyCharm/Mypy เท่านั้นครับป๋า
 if TYPE_CHECKING:
@@ -53,6 +55,7 @@ class HospitalRegistry:
         cls._examination_service = None
         cls._patient_repo = None
         cls._staff_service = None
+
 
     @classmethod
     def hard_reset(cls) -> None:
