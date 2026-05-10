@@ -1,11 +1,11 @@
 from domain.custom_error import DuplicateUsernameError
-from domain.interfaces import StaffRepository
 from domain.staff_entities import Staff
 from domain.value_object import Username
+from infrastructure.sqllite_staff_repository import SqlStaffRepository
 
 
 class StaffService:
-    def __init__(self, staff_repo: StaffRepository) -> None:
+    def __init__(self, staff_repo: SqlStaffRepository) -> None:
         self.staff_repo = staff_repo
 
     def register_staff(self,
@@ -29,8 +29,9 @@ class StaffService:
         self.staff_repo.save(new_staff)
         return new_staff
 
-    def _chack_duplicate_username(self, username_str) -> None:
-        if self.staff_repo and self.staff_repo.get_by_username(Username(id=username_str)):
+    def _chack_duplicate_username(self, username_str: str) -> None:
+        valid_username = Username(id=username_str)
+        if self.staff_repo and self.staff_repo.get_by_username(valid_username.id):
             raise DuplicateUsernameError(f'ชื่อ {username_str} มีคนใช้แล้ว')
 
     def authenticate_staff(self, username_str: str, plain_password: str) -> Staff | None:
@@ -38,7 +39,8 @@ class StaffService:
         กระบวนการยืนยันตัวตนพนักงาน
         """
         # 1. ค้นหาพนักงานจาก Username
-        staff = self.staff_repo.get_by_username(Username(id=username_str))
+        valid_username = Username(id=username_str)
+        staff = self.staff_repo.get_by_username(valid_username.id)
 
         # 2. ถ้าไม่พบพนักงาน หรือ พนักงานถูกระงับการใช้งาน (is_active = False)
         if not staff or not staff.is_active:
@@ -51,3 +53,8 @@ class StaffService:
 
         # 4. ถ้าทุกอย่างถูกต้อง ส่งตัวพนักงานกลับไปให้ระบบอื่นใช้งานต่อ (เช่น ไปออก Token)
         return staff
+
+    def get_by_username(self, username_str: str) -> Staff | None:
+        valid_username = Username(id=username_str)
+        return self.staff_repo.get_by_username(valid_username.id)
+

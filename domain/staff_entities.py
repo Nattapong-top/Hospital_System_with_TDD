@@ -44,9 +44,9 @@ class Staff(DomainEntity):
         phone_number_str: str,
         role: StaffRole,
     ) -> 'Staff':
-        '''
+        """
         การลงทะเบียนเจ้าหน้าที่ใหม่ ทำหน้าที่แปลง 'ข้อมูลดิบ' ให้เป็น 'Domain Object' ที่ถูกต้อง
-        '''
+        """
         return cls(
                 username=Username(id=username_str),
                 hashed_password=HashedPassword.create(password_str),
