@@ -1,6 +1,9 @@
+from uuid import uuid4
+
 from pytest import raises
 
-from domain.custom_error import PermissionDeniedError
+from domain.custom_error import PermissionDeniedError, InvalidStatusTransitionError, ConsultationNotFoundError, \
+    MissingDiagnosisError
 from domain.domain_service.examination_service import ExaminationService
 from domain.value_object import QueueStatus
 from tests.conftest import new_queue, new_staff_doctor, InMem_consul_repo
@@ -103,3 +106,87 @@ def test_finished_consultation_should_update_queue_completed(new_examination, di
 
     updated_queue = queue_service.get_by_queue_id(new_examination.queue_id)
     assert updated_queue.status.value == QueueStatus.COMPLETED.value
+
+
+def test_finish_consultation_with_invalid_id_should_raise_error(exam_service, new_staff_doctor, diagnosis):
+    # Arrange: สร้าง ID ปลอมที่ไม่มีในโลก
+    random_id = uuid4()
+
+    # Act & Assert
+    with raises(ConsultationNotFoundError):
+        exam_service.finish_consultation(
+            consultation_id=random_id,
+            queue_id=uuid4(),  # มั่วไปก่อน
+            doctor=new_staff_doctor,
+            diagnosis=diagnosis
+        )
+
+
+def test_cannot_finish_consultation_twice(new_examination, diagnosis, exam_service, new_staff_doctor):
+    # 1. ครั้งแรกต้องผ่าน
+    exam_service.finish_consultation(
+        consultation_id=new_examination.id,
+        queue_id=new_examination.queue_id,
+        doctor=new_staff_doctor,
+        diagnosis=diagnosis
+    )
+
+    # 2. ครั้งที่สองต้องระเบิด!
+    with raises(InvalidStatusTransitionError):
+        exam_service.finish_consultation(
+            consultation_id=new_examination.id,
+            queue_id=new_examination.queue_id,
+            doctor=new_staff_doctor,
+            diagnosis=diagnosis
+        )
+
+def test_finish_consultation_forget_diagnosis_should_raise_error(
+        exam_service, new_staff_doctor,new_examination):
+    with raises(MissingDiagnosisError):
+        exam_service.finish_consultation(
+            consultation_id=new_examination.id,
+            queue_id=new_examination.queue_id,
+            doctor=new_staff_doctor,
+            diagnosis=None
+        )
+
+
+def test_finish_consultation_invalid_status_should_raise_error(
+        new_examination, diagnosis, exam_service, new_staff_doctor):
+    # 1. Arrange: แอบไปเปลี่ยนสถานะเป็น CANCELLED ก่อน (จำลองว่าถูกยกเลิกไปแล้ว)
+    new_examination.status = QueueStatus.CANCELLED
+    # ต้องเซฟลง Repo ด้วยเพื่อให้ Service ไปดึงสถานะที่แก้แล้วออกมา
+    exam_service.consultation_repo.save(new_examination)
+
+    # 2. Act & Assert: ลองสั่งจบการตรวจ ต้องระเบิด Error ทันที!
+    with raises(InvalidStatusTransitionError) as exc:
+        exam_service.finish_consultation(
+            consultation_id=new_examination.id,
+            queue_id=new_examination.queue_id,
+            doctor=new_staff_doctor,
+            diagnosis=diagnosis
+        )
+
+    # เช็คคำด่า เอ้ย! คำอธิบาย Error นิดนึงว่าตรงไหม
+    assert "ไม่สามารถจบการตรวจได้" in str(exc.value)
+
+
+def test_finish_consultation_should_increment_version(
+        new_examination, diagnosis, exam_service, new_staff_doctor):
+    # 1. Arrange: เช็คก่อนว่าตอนเริ่ม Version คือ 1
+    assert new_examination.version.number == 1
+
+    # 2. Act: สั่งจบการตรวจ
+    finished_consul = exam_service.finish_consultation(
+        consultation_id=new_examination.id,
+        queue_id=new_examination.queue_id,
+        doctor=new_staff_doctor,
+        diagnosis=diagnosis
+    )
+
+    # 3. Assert: เลข Version ต้องขยับเป็น 2
+    assert finished_consul.version.number == 2
+
+    # และในตู้เหล็ก (Repo) ก็ต้องเป็นเลข 2 ด้วย
+    consul_in_db = exam_service.get_by_consultation_id(new_examination.id)
+    assert consul_in_db.version.number == 2
