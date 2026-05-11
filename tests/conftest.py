@@ -16,9 +16,13 @@ from domain.value_object import (
     PhoneNumber, Name, DateOfBirth, NationalID, Temperature, Weight, Height,
     BloodPressure, VitalSigns, QueueStatus, \
     Number, Version, StaffRole)
-from tests.fake_repository.fake_repository import FakeQueueRecord, InMemoryStaffRepository, InMemConsulRepo
+from tests.fake_repository.fake_repository import (FakeQueueRecord,
+                                                   InMemoryStaffRepository, InMemConsulRepo)
 
 
+# =====================================================================
+# 1. SYSTEM & DATABASE SETUP (ตัวคุมระบบและฐานข้อมูล)
+# =====================================================================
 # 🚩 1. ตัวคุมระบบ: เคลียร์ทุกอย่างก่อนเริ่มเทสแต่ละครั้ง
 @fixture(autouse=True)
 def setup_database():
@@ -40,23 +44,10 @@ def setup_database():
             # ถ้า Windows ล็อกไฟล์ไว้ ไม่ต้องตกใจครับ ปล่อยผ่านไปก่อน
             pass
 
-# 🚩 2. ตัวเบิกอุปกรณ์: ไม่ต้องสร้างเอง ให้ไปเบิกจากผู้อำนวยการ (Registry)
-@fixture
-def registrar():
-    return HospitalRegistry.patient_registrar()
 
-@fixture
-def queue_service():
-    return HospitalRegistry.queue_service()
-
-
-@fixture
-def client():
-    """🚩 กล่องเครื่องมือสำหรับยิง API (เหมือน Postman จำลอง)"""
-    # ใช้งาน TestClient โดยส่งแอป FastAPI ของป๋าเข้าไป
-    with TestClient(app) as c:
-        yield c
-
+# =====================================================================
+# 3. REPOSITORIES (ตู้เหล็กเก็บข้อมูล)
+# =====================================================================
 @fixture
 def fake_repo():
     return FakeQueueRecord()
@@ -66,12 +57,14 @@ def fake_repo():
 def queue_sql():
     return HospitalRegistry.queue_service().queue_repo
 
+
 # 🚩 1. เพิ่ม Fixture สำหรับตู้เหล็กคิว (ที่เทสเก่าถามหา)
 @fixture
 def queue_repo():
     """เบิกตู้เหล็กเก็บคิวจากผู้อำนวยการ"""
     # ดึงมาจาก Service ที่ Registry เตรียมไว้ให้แล้ว
     return HospitalRegistry.queue_service().queue_repo
+
 
 # 🚩 2. (แถม) เผื่อเทสไหนถามหาตู้เหล็กคนไข้
 @fixture
@@ -80,6 +73,43 @@ def patient_repo():
     return HospitalRegistry.patient_repo()
 
 
+@fixture
+def InMem_staff_repo():
+    return InMemoryStaffRepository()
+
+
+@fixture
+def InMem_consul_repo():
+    return InMemConsulRepo()
+
+
+# =====================================================================
+# 4. SERVICES (ผู้จัดการแผนกต่างๆ)
+# =====================================================================
+# 🚩 2. ตัวเบิกอุปกรณ์: ไม่ต้องสร้างเอง ให้ไปเบิกจากผู้อำนวยการ (Registry)
+@fixture
+def registrar():
+    return HospitalRegistry.patient_registrar()
+
+
+@fixture
+def queue_service():
+    return HospitalRegistry.queue_service()
+
+
+@fixture
+def exam_service(InMem_consul_repo, queue_service):
+    return ExaminationService(InMem_consul_repo, queue_service)
+
+
+@fixture
+def staff_service():
+    return HospitalRegistry.staff_service()
+
+
+# =====================================================================
+# 5. VALUE OBJECTS & MOCK DATA (ข้อมูลพื้นฐานจำลอง)
+# =====================================================================
 @fixture
 def registered_address() -> Address:
     return Address(
@@ -127,6 +157,22 @@ def vital_signs():
 
 
 @fixture
+def diagnosis(patient):
+    return Diagnosis(
+        disease='ไข้หวัดใหญ่',
+        treatment='พักผ่อนน ดิ่มน้ำมากๆ',
+        medicine_prescribed=[MedicineInfo(
+            name='Paracetamol',
+            strength='500mg',
+            frequency='วันละ 3 ครั้ง หลักอาหาร'
+        )]
+    )
+
+
+# =====================================================================
+# 6. MOCK ENTITIES (จำลอง Entity ต่างๆ เช่น คนไข้, หมอ, ใบตรวจ)
+# =====================================================================
+@fixture
 def patient(current_address, registered_address):
     return Patient(
         id=uuid.uuid4(),
@@ -164,18 +210,6 @@ def queue(patient, today_date, vital_signs):
 
 
 @fixture
-def diagnosis(patient):
-    return Diagnosis(
-        disease='ไข้หวัดใหญ่',
-        treatment='พักผ่อนน ดิ่มน้ำมากๆ',
-        medicine_prescribed=[MedicineInfo(
-            name='Paracetamol',
-            strength='500mg',
-            frequency='วันละ 3 ครั้ง หลักอาหาร'
-        )]
-    )
-
-@fixture
 def new_patient(registrar, vital_signs, registered_address, current_address):
     return registrar.register_new_patient(
         national_id=NationalID(id='1234567890123'),
@@ -188,11 +222,12 @@ def new_patient(registrar, vital_signs, registered_address, current_address):
         rights=Rights(rights_type=PatientRights.SOCIAL_SECURITY)
     )
 
+
 @fixture
 def new_staff_doctor():
     return Staff.register(
         username_str="nattapong-top",
-        password_str="Paa-TopIT_12123", # ส่งรหัสสดเข้าไป
+        password_str="Paa-TopIT_12123",  # ส่งรหัสสดเข้าไป
         national_id_str="1234567890123",
         first_name_str="ณัฐพงศ์",
         last_name_str="คนรักษาดี",
@@ -201,11 +236,12 @@ def new_staff_doctor():
         role=StaffRole.DOCTOR
     )
 
+
 @fixture
 def new_staff_nurse():
     return Staff.register(
         username_str="nontanan-nan",
-        password_str="nontanan_12123", # ส่งรหัสสดเข้าไป
+        password_str="nontanan_12123",  # ส่งรหัสสดเข้าไป
         national_id_str="1234567890123",
         first_name_str="นนทนัน",
         last_name_str="พยาบาลดี",
@@ -214,17 +250,6 @@ def new_staff_nurse():
         role=StaffRole.NURSE
     )
 
-@fixture
-def InMem_staff_repo():
-    return InMemoryStaffRepository()
-
-@fixture
-def InMem_consul_repo():
-    return InMemConsulRepo()
-
-@fixture
-def exam_service(InMem_consul_repo, queue_service):
-    return ExaminationService(InMem_consul_repo, queue_service)
 
 @fixture
 def new_examination(InMem_consul_repo, new_queue, new_staff_doctor, exam_service):
@@ -235,9 +260,6 @@ def new_examination(InMem_consul_repo, new_queue, new_staff_doctor, exam_service
         vital_signs=new_queue.vital_signs,
     )
 
-@fixture
-def staff_service():
-    return  HospitalRegistry.staff_service()
 
 @fixture
 def new_register_staff(staff_service):
@@ -254,7 +276,6 @@ def new_register_staff(staff_service):
     return new_staff
 
 
-
 @fixture
 def new_consultation(new_queue, new_staff_doctor):
     return Consultation(
@@ -265,6 +286,20 @@ def new_consultation(new_queue, new_staff_doctor):
     )
 
 
+# =====================================================================
+# 2. API TEST CLIENT (กล่องเครื่องมือยิง API)
+# =====================================================================
+@fixture
+def client():
+    """🚩 กล่องเครื่องมือสำหรับยิง API (เหมือน Postman จำลอง)"""
+    # ใช้งาน TestClient โดยส่งแอป FastAPI ของป๋าเข้าไป
+    with TestClient(app) as c:
+        yield c
+
+
+# =====================================================================
+# 7. API PAYLOADS (ข้อมูล JSON สำหรับยิงเข้า API)
+# =====================================================================
 @fixture
 def valid_patient_payload():
     return {
@@ -286,6 +321,7 @@ def valid_patient_payload():
         "rights_type": "ประกันสังคม"
     }
 
+
 @fixture
 def api_new_queues(client, valid_patient_payload):
     reg_res = client.post('/api/patients/register', json=valid_patient_payload)
@@ -303,6 +339,7 @@ def api_new_queues(client, valid_patient_payload):
     # ออกคิว ส่ง ข้อมูลสัญญาชีพและซักประวัติ
     new_queue = client.post('/api/triage', json=triage_payload)
     return new_queue
+
 
 @fixture
 def diagnosis_payload(diagnosis):
