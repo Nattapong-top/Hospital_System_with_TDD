@@ -42,10 +42,11 @@ class HospitalRegistry:
         return cls._DB_PATH
 
     @classmethod
-    def set_test_db(cls) -> None:
+    def set_test_db(cls) -> str:
         """🚩 สลับมาใช้ไฟล์สำหรับเทสโดยเฉพาะ"""
         cls.reset()
         cls._DB_PATH = str(cls._BASE_DIR / "database" / "test_database.db")
+        return cls._DB_PATH
 
     @classmethod
     def reset(cls) -> None:
