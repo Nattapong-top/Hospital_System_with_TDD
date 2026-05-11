@@ -57,3 +57,17 @@ class Staff(DomainEntity):
                 phone_number=PhoneNumber(value=phone_number_str),
                 role=role,
             )
+
+    def suspend(self) -> None:
+        """ระงับสิทธิ์การใช้งานพนักงาน"""
+        if not self.is_active:
+            return
+        self.is_active = False
+        self.version = self.version.increment()
+
+    def reactivate(self):
+        """คืนสิทธิ์การใช้งานพนักงาน (ปลดแบน)"""
+        if self.is_active:
+            return
+        self.is_active = True
+        self.version = self.version.increment()

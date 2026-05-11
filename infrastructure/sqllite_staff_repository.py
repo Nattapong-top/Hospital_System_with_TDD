@@ -73,6 +73,18 @@ class SqlStaffRepository:
                 data_tuple = self._map_entity_to_tuple(staff)
                 conn.execute(self._INSERT_STAFF_QUERY, data_tuple)
 
+    def update(self, staff: Staff) -> None:
+        # ดึงเลขเวอร์ชันปัจจุบันจากในตู้ (ที่ส่งมาจาก Entity คือตัวที่ increment แล้ว)
+        current_version, old_version = self._check_version(staff)
+
+        data = self._map_staff_to_data_for_sql(staff, current_version, old_version)
+
+        with closing(self._get_connection()) as conn:
+            with conn:
+                cursor = conn.execute(self._UPDATE_STAFF_QUERY, data)
+                if cursor.rowcount == 0:
+                    raise RuntimeError(f'มีคนอื่น update ข้อมูลพนักงานไปแล้วก่อนหน้านี้')
+
     def get_by_username(self, username_str: str) -> Staff | None:
         """เอาไว้ใช้ตอนทำระบบ Login"""
         with closing(self._get_connection()) as conn:
@@ -122,24 +134,9 @@ class SqlStaffRepository:
             is_active=bool(row['is_active'])
         )
 
-    def update(self, staff: Staff) -> None:
-        # ดึงเลขเวอร์ชันปัจจุบันจากในตู้ (ที่ส่งมาจาก Entity คือตัวที่ increment แล้ว)
-        current_version, old_version = self._check_version(staff)
-
-        data = self._map_staff_to_data_for_sql(staff, current_version, old_version)
-
-        with closing(self._get_connection()) as conn:
-            with conn:
-                cursor = conn.execute(self._UPDATE_STAFF_QUERY, data)
-                if cursor.rowcount == 0:
-                    raise RuntimeError(f'มีคนอื่น update ข้อมูลพนักงานไปแล้วก่อนหน้านี้')
-
-        # 🚩 พออัปเดตลงตู้เหล็กผ่าน อย่าลืมเปลี่ยนเลขเวอร์ชันที่ตัวพนักงานด้วยครับ
-        staff.version = Version(number=current_version)
-
     def _check_version(self, staff: Staff) -> tuple[int, int]:
-        old_version = staff.version.number  # เวอร์ชันเดิมที่จะเอาไปค้นหาใน DB (WHERE)
-        current_version = old_version + 1   # เวอร์ชันใหม่ที่จะเอาไปเซฟทับ (SET)
+        current_version = staff.version.number  # เวอร์ชันเดิมที่จะเอาไปค้นหาใน DB (WHERE)
+        old_version = current_version - 1   # เวอร์ชันใหม่ที่จะเอาไปเซฟทับ (SET)
         return current_version, old_version
 
     def _map_staff_to_data_for_sql(self, staff: Staff, current_version, old_version,) -> tuple:
