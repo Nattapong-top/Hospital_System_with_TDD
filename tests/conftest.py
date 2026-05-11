@@ -8,7 +8,6 @@ from pytest import fixture
 from api.main import app
 from domain.consultation_entities import Consultation
 from domain.domain_service.examination_service import ExaminationService
-from domain.domain_service.staff_service import StaffService
 from domain.entities import Patient, Queue
 from domain.hospital_registry import HospitalRegistry
 from domain.staff_entities import Staff

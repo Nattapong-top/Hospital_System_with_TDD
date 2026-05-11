@@ -129,11 +129,7 @@ def test_staff_service_with_authenticate_should_return_none_when_is_active_false
     # ตอนนี้มั่นใจได้ 100% ว่ามีหมอคนนี้อยู่ใน DB แน่นอนและเวอร์ชันเป็น 1
     assert staff.version.number == 1
 
-    # 2. สั่งแบนใน Memory
-    staff.is_active = False
-
-    # 3. สั่ง Update ลงตู้เหล็ก
-    staff_service.update(staff)
+    staff_service.suspend_staff(staff.staff_id)
 
     # 4. ลองล็อกอินด้วยรหัสสด
     auth_staff = staff_service.authenticate_staff(
@@ -143,3 +139,55 @@ def test_staff_service_with_authenticate_should_return_none_when_is_active_false
 
     # 5. ต้องเข้าไม่ได้ (return None)
     assert auth_staff is None
+
+
+def test_staff_service_with_suspend_should_return_none_when_is_active_false(staff_service):
+    # 1. สมัครพนักงานใหม่เลย ใช้เลขบัตรและ Username ที่ "ไม่ซ้ำ" กับเทสข้ออื่น
+    staff = staff_service.register_staff(
+        username_str="banned_doctor_999",  # 🚩 เปลี่ยนชื่อไม่ให้ซ้ำ
+        password_str="Paa-TopIT_12123",
+        national_id_str="9999999978999",  # 🚩 เปลี่ยนเลขบัตรไม่ให้ซ้ำ
+        first_name_str="หมอโดน",
+        last_name_str="แบน",
+        dob_year=1990, dob_month=12, dob_day=31,
+        phone_number_str="0999999999",
+        role=StaffRole.DOCTOR
+    )
+
+    # ตอนนี้มั่นใจได้ 100% ว่ามีหมอคนนี้อยู่ใน DB แน่นอนและเวอร์ชันเป็น 1
+    assert staff.version.number == 1
+
+    # 2. สั่งแบนใน Memory
+    staff_service.suspend_staff(staff.staff_id)
+    suspend_staff = staff_service.get_by_staff_id(staff.staff_id)
+    assert suspend_staff.is_active is False
+    assert suspend_staff.version.number == 2
+
+
+    # 4. ลองล็อกอินด้วยรหัสสด
+    auth_staff = staff_service.authenticate_staff(
+        username_str="banned_doctor_999",
+        plain_password="Paa-TopIT_12123"
+    )
+
+    # 5. ต้องเข้าไม่ได้ (return None)
+    assert auth_staff is None
+
+def test_staff_service_with_reactivate_should_return_staff_when_authenticated(staff_service, new_register_staff):
+    staff_service.suspend_staff(new_register_staff.staff_id)
+    suspend_staff = staff_service.get_by_staff_id(new_register_staff.staff_id)
+    assert suspend_staff.version.number == 2
+    assert suspend_staff.is_active is False
+
+    staff_service.reactivate_staff(suspend_staff.staff_id)
+    reactivate_staff = staff_service.get_by_staff_id(suspend_staff.staff_id)
+
+    assert reactivate_staff.version.number == 3
+    assert reactivate_staff.is_active is True
+
+    auth_staff = staff_service.authenticate_staff(
+        username_str=new_register_staff.username.id,
+        plain_password="Paa-TopIT_12123",
+    )
+    assert auth_staff is not None
+    assert auth_staff.is_active is True
