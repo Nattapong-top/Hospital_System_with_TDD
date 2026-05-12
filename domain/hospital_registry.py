@@ -1,11 +1,10 @@
 # domain/hospital_registry.py
 from __future__ import annotations
+
 from pathlib import Path
 from typing import TYPE_CHECKING
 
 from core.config import settings  # settings ไว้ที่หัวได้ เพราะเป็นแค่ข้อมูลตั้งค่า (Config)
-from domain.domain_service.staff_service import StaffService
-from infrastructure.sqllite_staff_repository import SqlStaffRepository
 
 # บล็อกนี้จะทำงานเฉพาะในสายตาของ PyCharm/Mypy เท่านั้นครับป๋า
 if TYPE_CHECKING:
@@ -15,8 +14,8 @@ if TYPE_CHECKING:
     from domain.domain_service.staff_service import StaffService
     from infrastructure.sqlite_patient_repository import SqlPatientRepository
     from infrastructure.sqlite_queue_repository import SqlQueueRepository
-    from infrastructure.sqlite_consultation_repository import SqlConsultationRepository
     from infrastructure.sqllite_staff_repository import SqlStaffRepository
+    from infrastructure.sqlite_consultation_repository import SqlConsultationRepository
 
 
 class HospitalRegistry:
@@ -28,11 +27,13 @@ class HospitalRegistry:
     _DB_PATH = None
 
     # ตู้เก็บพนักงาน (Singleton Cache)
-    _patient_repo = None
     _patient_registrar = None
     _queue_service = None
     _examination_service = None
     _staff_service = None
+    _patient_repo = None
+    _consultation_repo = None
+
 
     @classmethod
     def get_db_path(cls) -> str:
@@ -71,6 +72,7 @@ class HospitalRegistry:
         from infrastructure.sqlite_patient_repository import SqlPatientRepository
         from infrastructure.sqlite_queue_repository import SqlQueueRepository
         from infrastructure.sqllite_staff_repository import SqlStaffRepository
+        from infrastructure.sqlite_consultation_repository import SqlConsultationRepository
 
         path = cls.get_db_path()
         if path != "test_database.db":
@@ -80,6 +82,7 @@ class HospitalRegistry:
         SqlPatientRepository(db_path=path)
         SqlQueueRepository(db_path=path)
         SqlStaffRepository(db_path=path)
+        SqlConsultationRepository(db_path=path)
 
     @classmethod
     def patient_registrar(cls) -> PatientRegistrar:
@@ -115,6 +118,14 @@ class HospitalRegistry:
         return cls._staff_service
 
     @classmethod
+    def consultation_service(cls) -> QueueService | ExaminationService:
+        """จุดสลับร่างระบบตรวจรักษา (Branch by Abstraction)"""
+        if settings.ENABLE_NEW_EXAMINATION_FLOW:
+            return cls._set_switch_to_new_exam_service()
+        return cls.queue_service()
+
+
+    @classmethod
     def patient_repo(cls) -> SqlPatientRepository:
         """เบิกตู้เก็บคนไข้ (Local Import)"""
         if cls._patient_repo is None:
@@ -123,11 +134,12 @@ class HospitalRegistry:
         return cls._patient_repo
 
     @classmethod
-    def consultation_service(cls) -> QueueService | ExaminationService:
-        """จุดสลับร่างระบบตรวจรักษา (Branch by Abstraction)"""
-        if settings.ENABLE_NEW_EXAMINATION_FLOW:
-            return cls._set_switch_to_new_exam_service()
-        return cls.queue_service()
+    def consultation_repo(cls):
+        """เบิกตู้เก็บใบตรวจรักษา (สร้างแบบ Singleton)"""
+        if cls._consultation_repo is None:
+            from infrastructure.sqlite_consultation_repository import SqlConsultationRepository
+            cls._consultation_repo = SqlConsultationRepository(db_path=cls.get_db_path())
+        return cls._consultation_repo
 
     @classmethod
     def _set_switch_to_new_exam_service(cls) -> ExaminationService:
