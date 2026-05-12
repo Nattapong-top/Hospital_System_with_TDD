@@ -16,6 +16,7 @@ from domain.value_object import (
     PhoneNumber, Name, DateOfBirth, NationalID, Temperature, Weight, Height,
     BloodPressure, VitalSigns, QueueStatus, \
     Number, Version, StaffRole)
+from infrastructure.sqlite_consultation_repository import SqlConsultationRepository
 from tests.fake_repository.fake_repository import (FakeQueueRecord,
                                                    InMemoryStaffRepository, InMemConsulRepo)
 
@@ -81,6 +82,10 @@ def InMem_staff_repo():
 @fixture
 def InMem_consul_repo():
     return InMemConsulRepo()
+
+@fixture
+def consul_repo():
+    return SqlConsultationRepository(HospitalRegistry.set_test_db())
 
 
 # =====================================================================
