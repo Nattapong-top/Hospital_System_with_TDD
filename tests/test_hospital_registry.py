@@ -11,6 +11,7 @@ from infrastructure.sqlite_patient_repository import SqlPatientRepository
 # --- โซนงานช่าง (Infrastructure): นำเข้าตู้เก็บของจริง ---
 from infrastructure.sqlite_queue_repository import SqlQueueRepository
 from infrastructure.sqllite_staff_repository import SqlStaffRepository
+from infrastructure.sqlite_consultation_repository import SqlConsultationRepository
 
 
 def test_hospital_registry_should_return_queue_service_when_fake_repo(fake_repo):
@@ -84,5 +85,16 @@ def test_hospital_registry_should_switch_to_queue_service_when_false(monkeypatch
     HospitalRegistry.reset()
     service = HospitalRegistry.consultation_service()
     assert isinstance(service, QueueService)
+    assert isinstance(service.queue_repo, SqlQueueRepository)
     assert not isinstance(service, ExaminationService)
 
+def test_hospital_registry_should_auto_wire_consultation_repo_service(monkeypatch):
+    monkeypatch.setattr(settings, "ENABLE_NEW_EXAMINATION_FLOW", True)
+    HospitalRegistry.reset()
+
+    service = HospitalRegistry.consultation_service()
+
+    assert isinstance(service, ExaminationService)
+    assert isinstance(service.consultation_repo, SqlConsultationRepository)
+    assert not isinstance(service, QueueService)
+    assert not isinstance(service.consultation_repo, SqlQueueRepository)
