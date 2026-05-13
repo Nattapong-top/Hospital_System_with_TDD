@@ -1,5 +1,6 @@
 from uuid import uuid4
 
+from domain.custom_error import ConcurrentUpdateError
 from domain.hospital_registry import HospitalRegistry
 from infrastructure.sqlite_consultation_repository import SqlConsultationRepository
 from tests.conftest import new_consultation
@@ -67,10 +68,10 @@ def test_consultation_repo_concurrent_update_should_raise_error(new_consultation
     screen_doctor.complete_examination(diagnosis)
     # 5. หมอกด Save ทับ -> ต้องระเบิด Error ทันที เพราะหาเวอร์ชันเก่าใน DB ไม่เจอแล้ว!
     import pytest
-    with pytest.raises(RuntimeError) as exc_info:
+    with pytest.raises(ConcurrentUpdateError) as exc_info:
         consul_repo.update(screen_doctor)
     # 6. เช็คว่า Error Message แจ้งเตือนถูกต้อง
-    assert 'มีคนอื่น update ใบตรวจรักษา' in str(exc_info.value)
+    assert 'เนื่องจากมีคนอื่นแก้ไขข้อมูลนี้ไปแล้วก่อนหน้านี้' in str(exc_info.value)
 
 
 

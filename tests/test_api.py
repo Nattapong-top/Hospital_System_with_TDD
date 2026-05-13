@@ -149,7 +149,7 @@ def test_api_queue_complete_visit_whit_none_diagnosis_should_raise_missing_diagn
     q_complete = client.post(f'/api/consultations/{queue_id}/complete', json={})
     assert q_complete.status_code == 400
     data = q_complete.json()
-    assert 'กรุณากรอกข้อมูลการวินิจฉัยด้วยครับ' in data['detail']
+    assert 'กรุณากรอกข้อมูลการวินิจฉัยโรคด้วยครับ' in data['detail']
 
 def test_api_queue_cancel_visit_whit_status_waiting_should_successfully(client, api_new_queues, diagnosis_payload):
     queue_id = api_new_queues.json()['queue_id']

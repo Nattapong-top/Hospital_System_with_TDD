@@ -5,6 +5,7 @@ from datetime import datetime
 from uuid import UUID
 
 from domain.consultation_entities import Consultation
+from domain.custom_error import ConcurrentUpdateError
 from domain.interfaces import ConsultationRepository
 from domain.value_object import VitalSigns, Diagnosis, QueueStatus, Version
 
@@ -86,7 +87,7 @@ class SqlConsultationRepository(ConsultationRepository):
             with conn:
                 cursor = conn.execute(self._UPDATE_CONSULTATION_QUERY, data)
                 if cursor.rowcount == 0:
-                    raise RuntimeError(f'มีคนอื่น update ใบตรวจรักษา {consultation.id} ไปแล้วก่อนหน้านี้')
+                    raise ConcurrentUpdateError(entity_name="ใบตรวจรักษา", entity_id=consultation.id)
 
     def get_by_queue_id(self, queue_id: UUID) -> Consultation | None:
         with closing(self._get_connection()) as conn:

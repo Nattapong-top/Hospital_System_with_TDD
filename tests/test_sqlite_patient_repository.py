@@ -2,7 +2,7 @@ import uuid
 
 from pytest import raises
 
-from domain.custom_error import DuplicateNationalIDError
+from domain.custom_error import DuplicateNationalIDError, ConcurrentUpdateError
 from domain.value_object import (
     NationalID, Name, PhoneNumber)
 
@@ -85,7 +85,7 @@ def test_sql_patient_repository_should_raise_error_when_concurrency_conflict(pat
 
     nurse_b_view.update_first_name(Name(value="มหานครอัครสถาน"))
 
-    with raises(RuntimeError) as error:
+    with raises(ConcurrentUpdateError) as error:
         patient_repo.update(nurse_b_view)
 
-    assert 'update' in str(error.value)
+    assert 'เนื่องจากมีคนอื่นแก้ไขข้อมูลนี้ไปแล้วก่อนหน้านี้' in str(error.value)
