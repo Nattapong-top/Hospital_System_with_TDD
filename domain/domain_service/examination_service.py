@@ -39,6 +39,15 @@ class ExaminationService:
         
         return consultation
 
+    def cancel_consultation(self, consultation_id: UUID, queue_id: UUID, staff: Staff) -> Consultation:
+        consultation = self._get_consultation_or_raise(consultation_id=consultation_id)
+
+        consultation.cancel_examination()
+        self._update_state_queue_to_cancel(queue_id)
+
+        self.consultation_repo.update(consultation)
+        return consultation
+
     def _get_consultation_or_raise(self, consultation_id: UUID) -> Consultation:
         consultation = self.consultation_repo.get_by_consultation_id(consultation_id=consultation_id)
         if consultation is None:
@@ -59,3 +68,7 @@ class ExaminationService:
     def _update_state_queue_to_complete(self, queue_id):
         if self.queue_service:
             self.queue_service.complete_visit(queue_id)
+
+    def _update_state_queue_to_cancel(self, queue_id):
+        if self.queue_service:
+            self.queue_service.cancel_visit(queue_id)
