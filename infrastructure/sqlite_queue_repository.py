@@ -4,6 +4,7 @@ from contextlib import closing
 from datetime import date
 from uuid import UUID
 
+from domain.custom_error import ConcurrentUpdateError
 from domain.entities import Queue
 from domain.interfaces import QueueRecord
 from domain.value_object import (
@@ -117,8 +118,8 @@ class SqlQueueRepository(QueueRecord):
 
             # 🚩 3. ถ้าไม่มีแถวไหนถูกอัปเดต แปลว่า Version ไม่ตรง!
             if cursor.rowcount == 0:
-                raise RuntimeError("ข้อมูลใบคิวถูก update โดยผู้อื่นไปก่อนหน้าแล้ว")
-
+                raise ConcurrentUpdateError(entity_name="คิวตรวจ", entity_id=queue.id)
+            
     def get_by_queue_id(self, queue_id: UUID) -> Queue | None:
         with closing(self._get_connection()) as conn:
             row = conn.execute(self._SELECT_BY_ID_QUERY, (str(queue_id),)).fetchone()

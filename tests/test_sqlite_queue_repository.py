@@ -2,6 +2,7 @@ import os
 
 from pytest import raises
 
+from domain.custom_error import ConcurrentUpdateError
 from domain.value_object import (
     QueueStatus, Diagnosis, MedicineInfo)
 
@@ -95,11 +96,11 @@ def test_sqlite_queue_queue_repo_should_raise_error_when_concurrency_conflict(qu
 
     nurse_b_view.cancel_visit()
 
-    with raises(RuntimeError) as error:
+    with raises(ConcurrentUpdateError) as error:
         queue_repo.update(nurse_b_view)
         os.remove(queue_repo.db_path)
 
-    assert 'ข้อมูลใบคิวถูก update โดยผู้อื่นไปก่อนหน้าแล้ว' in str(error.value)
+    assert 'เนื่องจากมีคนอื่นแก้ไขข้อมูลนี้ไปแล้วก่อนหน้านี้' in str(error.value)
 
 
 def test_sqlite_queue_repo_should_update_queue_when_have_id_(queue_repo, queue):

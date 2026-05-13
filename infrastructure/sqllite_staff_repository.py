@@ -2,6 +2,7 @@ import sqlite3
 from contextlib import closing
 from uuid import UUID
 
+from domain.custom_error import ConcurrentUpdateError
 from domain.staff_entities import Staff
 from domain.value_object import (
     Username, HashedPassword, NationalID, Name,
@@ -83,8 +84,8 @@ class SqlStaffRepository:
             with conn:
                 cursor = conn.execute(self._UPDATE_STAFF_QUERY, data)
                 if cursor.rowcount == 0:
-                    raise RuntimeError(f'มีคนอื่น update ข้อมูลพนักงานไปแล้วก่อนหน้านี้')
-
+                    raise ConcurrentUpdateError(entity_name="ข้อมูลพนักงาน", entity_id=staff.staff_id)
+                
     def get_by_username(self, username_str: str) -> Staff | None:
         """เอาไว้ใช้ตอนทำระบบ Login"""
         with closing(self._get_connection()) as conn:

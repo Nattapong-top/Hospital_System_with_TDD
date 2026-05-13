@@ -3,7 +3,7 @@ from contextlib import closing
 from typing import Optional
 from uuid import UUID
 
-from domain.custom_error import DuplicateNationalIDError
+from domain.custom_error import DuplicateNationalIDError, ConcurrentUpdateError
 from domain.entities import Patient
 from domain.interfaces import PatientRecord
 from domain.value_object import (
@@ -104,7 +104,7 @@ class SqlPatientRepository(PatientRecord):
             with conn:
                 cursor = conn.execute(self._UPDATE_QUERY, data)
                 if cursor.rowcount == 0:
-                    raise RuntimeError(f'มีคนอื่น update ข้อมูลคนไข้ไปแล้วก่อนหน้านี้')
+                    raise ConcurrentUpdateError(entity_name="ใบตรวจรักษา", entity_id=patient.id)
 
     def get_by_national_id(self, national_id: NationalID) -> Optional[Patient]:
         """ค้นหาและปั้นร่าง (Rehydrate) ข้อมูลกลับเป็น Entity"""
