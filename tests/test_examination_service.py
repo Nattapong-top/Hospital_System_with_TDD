@@ -13,7 +13,7 @@ from tests.fake_repository.fake_repository import InMemConsulRepo
 def test_exam_service_start_consul_should_succeed(new_queue, new_staff_doctor, InMem_consul_repo):
     consul = ExaminationService(InMem_consul_repo).start_consultation(
         queue_id=new_queue.id,
-        doctor=new_staff_doctor,
+        staff=new_staff_doctor,
         patient_id=new_queue.patient_id,
         vital_signs=new_queue.vital_signs,
     )
@@ -22,26 +22,42 @@ def test_exam_service_start_consul_should_succeed(new_queue, new_staff_doctor, I
     assert consul.status.value == 'กำลังพบหมอ'
 
 
-def test_start_consultation_by_nurse_should_raise_permission_denied_error(new_queue, new_staff_nurse, InMem_consul_repo):
-    """โจทย์: ถ้าส่งพยาบาลมาเริ่มตรวจ ระบบต้องระเบิด Error ทันที"""
-    # 1. Arrange: เตรียมพยาบาล (ที่มี role = NURSE)
+def test_start_consultation_by_other_role_should_raise_permission_denied_error(new_queue, new_staff_admin, InMem_consul_repo):
+    """โจทย์: ถ้าส่ง admin มาเริ่มตรวจ ระบบต้องระเบิด Error ทันที"""
+    # 1. Arrange: เตรียม admin (ที่มี role = ADMIN)
     service = ExaminationService(InMem_consul_repo)
 
-    # 2. Act & Assert: ลองของ! ส่งพยาบาลเข้าไปตรวจ
+    # 2. Act & Assert: ลองของ! ส่ง admin เข้าไปตรวจ
     with raises(PermissionDeniedError) as err:
         service.start_consultation(
             queue_id=new_queue.id,
-            doctor=new_staff_nurse,  # 🚩 ส่งตัว Staff เข้าไปเลยจะได้เช็ค Role ได้
+            staff=new_staff_admin,  # 🚩 ส่งตัว Staff เข้าไปเลยจะได้เช็ค Role ได้
             patient_id=new_queue.patient_id,
             vital_signs=new_queue.vital_signs
         )
-    assert 'หมอเท่านั้นที่มีสิทธิ์ตรวจ' in str(err.value)
+    assert 'คุณไม่มีสิทธิ์ในการทำรายการนี้' in str(err.value)
+
+def test_start_consultation_by_nurse_should_success(new_staff_nurse, new_queue, InMem_consul_repo):
+    service = ExaminationService(InMem_consul_repo)
+    nurse_start = service.start_consultation(
+        queue_id=new_queue.id,
+        staff=new_staff_nurse,
+        patient_id=new_queue.patient_id,
+        vital_signs=new_queue.vital_signs
+     )
+    assert nurse_start is not None
+    assert nurse_start is not None
+    assert nurse_start.queue_id == new_queue.id
+    assert nurse_start.status.value == 'กำลังพบหมอ'
+
+
+
 
 def test_exam_service_start_consul_should_save_to_repo(new_queue, new_staff_doctor):
     repo = InMemConsulRepo()
     consul = ExaminationService(repo).start_consultation(
         queue_id=new_queue.id,
-        doctor=new_staff_doctor,
+        staff=new_staff_doctor,
         patient_id=new_queue.patient_id,
         vital_signs=new_queue.vital_signs,
     )
@@ -74,7 +90,7 @@ def test_start_consultation_should_update_queue_status_to_in_progress(new_queue,
     # 2. Act: เริ่มการตรวจผ่าน ExaminationService
     service.start_consultation(
         queue_id=new_queue.id,
-        doctor=new_staff_doctor,
+        staff=new_staff_doctor,
         patient_id=new_queue.patient_id,
         vital_signs=new_queue.vital_signs
     )
