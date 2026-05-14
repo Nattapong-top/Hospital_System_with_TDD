@@ -257,10 +257,24 @@ def new_staff_nurse():
 
 
 @fixture
+def new_staff_admin():
+    return Staff.register(
+        username_str="admin",
+        password_str="can't_start",  # ส่งรหัสสดเข้าไป
+        national_id_str="1234567894444",
+        first_name_str="admin",
+        last_name_str="can't start",
+        dob_year=1998, dob_month=1, dob_day=31,
+        phone_number_str="0999888888",
+        role=StaffRole.ADMIN
+    )
+
+
+@fixture
 def new_examination(InMem_consul_repo, new_queue, new_staff_doctor, exam_service):
     return exam_service.start_consultation(
         queue_id=new_queue.id,
-        doctor=new_staff_doctor,
+        staff=new_staff_doctor,
         patient_id=new_queue.patient_id,
         vital_signs=new_queue.vital_signs,
     )
