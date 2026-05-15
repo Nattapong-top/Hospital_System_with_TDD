@@ -9,10 +9,19 @@ class StaffService:
     def __init__(self, staff_repo: SqlStaffRepository) -> None:
         self.staff_repo = staff_repo
 
-    def register_staff(self,
-                       username_str: str, password_str: str, national_id_str: str,
-                       first_name_str: str, last_name_str: str, dob_year: int,
-                       dob_month: int, dob_day: int, phone_number_str: str, role) -> Staff:
+    def register_staff(
+        self,
+        username_str: str,
+        password_str: str,
+        national_id_str: str,
+        first_name_str: str,
+        last_name_str: str,
+        dob_year: int,
+        dob_month: int,
+        dob_day: int,
+        phone_number_str: str,
+        role,
+    ) -> Staff:
         """ลงทะเบียนพนักงานใหม่"""
         # 1. ตรวจสอบว่าชื่อผู้ใช้ซ้ำไหม
         self._check_duplicate_username(username_str)
@@ -24,16 +33,20 @@ class StaffService:
             national_id_str=national_id_str,
             first_name_str=first_name_str,
             last_name_str=last_name_str,
-            dob_year=dob_year, dob_month=dob_month, dob_day=dob_day,
+            dob_year=dob_year,
+            dob_month=dob_month,
+            dob_day=dob_day,
             phone_number_str=phone_number_str,
-            role=role
+            role=role,
         )
 
         # 3. บันทึกลงตู้เหล็ก
         self.staff_repo.save(new_staff)
         return new_staff
 
-    def authenticate_staff(self, username_str: str, plain_password: str) -> Staff | None:
+    def authenticate_staff(
+        self, username_str: str, plain_password: str
+    ) -> Staff | None:
         """ยืนยันตัวตนพนักงาน (Login)"""
         staff = self.get_by_username(username_str)
 
@@ -82,7 +95,7 @@ class StaffService:
 
     def _check_duplicate_username(self, username_str: str) -> None:
         if self.get_by_username(username_str):
-            raise DuplicateUsernameError(f'ชื่อ {username_str} มีคนใช้แล้ว')
+            raise DuplicateUsernameError(f"ชื่อ {username_str} มีคนใช้แล้ว")
 
     def _get_staff_or_raise(self, staff_id: UUID) -> Staff:
         staff = self.staff_repo.get_by_staff_id(staff_id)

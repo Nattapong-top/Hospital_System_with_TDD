@@ -5,7 +5,12 @@ from uuid import UUID
 
 from domain.consultation_entities import Consultation
 from domain.entities import Patient, Queue
-from domain.interfaces import PatientRecord, QueueRecord, StaffRepository, ConsultationRepository
+from domain.interfaces import (
+    PatientRecord,
+    QueueRecord,
+    StaffRepository,
+    ConsultationRepository,
+)
 from domain.staff_entities import Staff
 from domain.value_object import NationalID, QueueStatus, Username
 
@@ -18,21 +23,25 @@ class FakePatientRecord(PatientRecord):
         self.patients[patient.id] = patient
 
     def get_by_national_id(self, national_id: NationalID) -> Patient | None:
-        return next((p for p in self.patients.values() if p.national_id == national_id), None)
+        return next(
+            (p for p in self.patients.values() if p.national_id == national_id), None
+        )
 
     def update(self, patient: Patient) -> None:
         pass
 
+
 # เคสที่ 4: ระบบฐานข้อมูลมีปัญหา (Infrastructure Failure)
 class BrokenPatientRecord(PatientRecord):
     def save(self, patient: Patient) -> None:
-        raise RuntimeError('Database พัง save ไม่ได้')
+        raise RuntimeError("Database พัง save ไม่ได้")
 
     def get_by_national_id(self, national_id: NationalID) -> None:
         return None
 
     def update(self, patient: Patient) -> None:
         pass
+
 
 class FakeQueueRecord(QueueRecord, ABC):
     def __init__(self):
@@ -44,11 +53,15 @@ class FakeQueueRecord(QueueRecord, ABC):
     def save(self, queue: Queue) -> None:
         self.queues.append(queue)
 
-    def find_active_queue_by_patient(self, patient_id: UUID, queue_date: date) -> Optional[Queue]:
+    def find_active_queue_by_patient(
+        self, patient_id: UUID, queue_date: date
+    ) -> Optional[Queue]:
         for queue in self.queues:
-            if (queue.patient_id == patient_id and
-                    queue.queue_date == queue_date and
-                    queue.status in [QueueStatus.WAITING, QueueStatus.IN_PROGRESS]):
+            if (
+                queue.patient_id == patient_id
+                and queue.queue_date == queue_date
+                and queue.status in [QueueStatus.WAITING, QueueStatus.IN_PROGRESS]
+            ):
                 return queue
         return None
 
@@ -82,7 +95,9 @@ class InMemoryStaffRepository(StaffRepository):
         return next((s for s in self._staffs.values() if s.username == username), None)
 
     def get_by_national_id_staff(self, national_id: NationalID) -> Optional[Staff]:
-        return next((s for s in self._staffs.values() if s.national_id == national_id), None)
+        return next(
+            (s for s in self._staffs.values() if s.national_id == national_id), None
+        )
 
 
 class InMemConsulRepo(ConsultationRepository):

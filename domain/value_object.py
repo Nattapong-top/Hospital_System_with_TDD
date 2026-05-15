@@ -5,8 +5,7 @@ from enum import Enum
 from typing import Optional
 
 import bcrypt
-from pydantic import (
-    BaseModel, Field, field_validator, ConfigDict, model_validator)
+from pydantic import BaseModel, Field, field_validator, ConfigDict, model_validator
 
 
 class DomainValueObject(BaseModel):
@@ -19,15 +18,15 @@ class Province(Enum):
     PHUKET = "ภูเก็ต"
     KHON_KAEN = "ขอนแก่น"
     CHONBURI = "ชลบุรี"
-    MUKDAHAN = 'มุกดาหาร'
+    MUKDAHAN = "มุกดาหาร"
 
 
 class PaymentType(Enum):
-    GOLD_CARD = 'บัตรทอง'
-    SOCIAL_SECURITY = 'ประกันสังคม'
-    COMPANY_INSURANCE = 'ประกันบริษัท'
-    CASH = 'เงินสด'
-    QR_PAYMENT = 'คิวอาร์โค๊ด'
+    GOLD_CARD = "บัตรทอง"
+    SOCIAL_SECURITY = "ประกันสังคม"
+    COMPANY_INSURANCE = "ประกันบริษัท"
+    CASH = "เงินสด"
+    QR_PAYMENT = "คิวอาร์โค๊ด"
 
 
 class Specialization(Enum):
@@ -40,54 +39,54 @@ class Specialization(Enum):
 
 
 class StaffRole(Enum):
-    DOCTOR = 'หมอ'
-    NURSE = 'พยาบาล'
-    STAFF = 'เจ้าหน้าที่'
-    ADMIN = 'ADMINISTRATOR'
+    DOCTOR = "หมอ"
+    NURSE = "พยาบาล"
+    STAFF = "เจ้าหน้าที่"
+    ADMIN = "ADMINISTRATOR"
 
 
 class QueueStatus(Enum):
-    WAITING = 'รอ'
-    IN_PROGRESS = 'กำลังพบหมอ'
-    COMPLETED = 'ตรวจเสร็จแล้ว'
-    CANCELLED = 'ยกเลิก'
+    WAITING = "รอ"
+    IN_PROGRESS = "กำลังพบหมอ"
+    COMPLETED = "ตรวจเสร็จแล้ว"
+    CANCELLED = "ยกเลิก"
 
 
 class NationalID(DomainValueObject):
-    id: str = Field(..., min_length=13, max_length=13, pattern=r'^\d{13}$')
+    id: str = Field(..., min_length=13, max_length=13, pattern=r"^\d{13}$")
 
 
 class Name(DomainValueObject):
-    value: str = Field(..., min_length=1, max_length=50, pattern=r'^[^\d]+$')
+    value: str = Field(..., min_length=1, max_length=50, pattern=r"^[^\d]+$")
 
-    @field_validator('value')
+    @field_validator("value")
     @classmethod
     def _must_not_be_blank(cls, v: str) -> str:
-        if v.strip() == '':
-            raise ValueError('ชื่อห้ามว่างครับ')
+        if v.strip() == "":
+            raise ValueError("ชื่อห้ามว่างครับ")
         return v
 
 
 class PhoneNumber(DomainValueObject):
     value: str = Field(..., max_length=10, min_length=10)
 
-    @field_validator('value', mode='before')
+    @field_validator("value", mode="before")
     @classmethod
     def _normalize_phone(cls, v: str) -> str:
-        return v.replace('-', '')
+        return v.replace("-", "")
 
-    @field_validator('value', mode='after')
+    @field_validator("value", mode="after")
     @classmethod
     def _start_not_zero(cls, v: str) -> str:
-        if not v.startswith('0'):
-            raise ValueError('เบอร์โทรขึ้นต้นด้วย 0 เท่านั้นครับ')
+        if not v.startswith("0"):
+            raise ValueError("เบอร์โทรขึ้นต้นด้วย 0 เท่านั้นครับ")
         return v
 
-    @field_validator('value')
+    @field_validator("value")
     @classmethod
     def _must_be_digits(cls, v: str) -> str:
         if not v.isdigit():
-            raise ValueError('ห้ามมีตัวอักษรครับ')
+            raise ValueError("ห้ามมีตัวอักษรครับ")
         return v
 
 
@@ -96,31 +95,43 @@ class DateOfBirth(DomainValueObject):
     month: int = Field(..., ge=1, le=12)
     day: int = Field(..., ge=1, le=31)
 
-    @model_validator(mode='after')
-    def _must_not_be_future_date_and_over_150_years(self) -> 'DateOfBirth':
+    @model_validator(mode="after")
+    def _must_not_be_future_date_and_over_150_years(self) -> "DateOfBirth":
         dob = date(self.year, self.month, self.day)
         if dob > date.today():
-            raise ValueError('วันเกิดห้ามเป็นวันในอนาคต')
+            raise ValueError("วันเกิดห้ามเป็นวันในอนาคต")
 
         age_in_years = date.today().year - dob.year
         if age_in_years > 150:
-            raise ValueError('อายุห้ามเกิน 150 ปี')
+            raise ValueError("อายุห้ามเกิน 150 ปี")
         return self
 
 
 class Address(DomainValueObject):
-    house_number: str = Field(..., min_length=1, max_length=50, )
+    house_number: str = Field(
+        ...,
+        min_length=1,
+        max_length=50,
+    )
     street: Optional[str] = None
-    sub_district: str = Field(..., min_length=1, max_length=50, )
-    district: str = Field(..., min_length=1, max_length=50, )
+    sub_district: str = Field(
+        ...,
+        min_length=1,
+        max_length=50,
+    )
+    district: str = Field(
+        ...,
+        min_length=1,
+        max_length=50,
+    )
     province: Province
-    postal_code: str = Field(..., min_length=5, max_length=5, pattern=r'^\d{5}$')
+    postal_code: str = Field(..., min_length=5, max_length=5, pattern=r"^\d{5}$")
 
 
 class PatientRights(Enum):
-    GOLD_CARD = 'บัตรทอง'
-    SOCIAL_SECURITY = 'ประกันสังคม'
-    COMPANY_INSURANCE = 'ประกันบริษัท'
+    GOLD_CARD = "บัตรทอง"
+    SOCIAL_SECURITY = "ประกันสังคม"
+    COMPANY_INSURANCE = "ประกันบริษัท"
 
 
 class Rights(DomainValueObject):
@@ -151,11 +162,11 @@ class VitalSigns(DomainValueObject):
     temperature: Temperature
     symptom: str = Field(..., min_length=1, max_length=50)
 
-    @field_validator('symptom')
+    @field_validator("symptom")
     @classmethod
     def _must_not_be_blank(cls, v: str) -> str:
-        if v.strip() == '':
-            raise ValueError('กรุณาบอกอาการด้วย')
+        if v.strip() == "":
+            raise ValueError("กรุณาบอกอาการด้วย")
         return v
 
 
@@ -164,11 +175,11 @@ class MedicineInfo(DomainValueObject):
     strength: str = Field(..., min_length=1, max_length=100)
     frequency: str = Field(..., min_length=1, max_length=100)
 
-    @field_validator('name', 'strength', 'frequency')
+    @field_validator("name", "strength", "frequency")
     @classmethod
     def _must_not_be_blank(cls, v: str) -> str:
-        if v.strip() == '':
-            raise ValueError('กรุณากรอกข้อมูลด้วยครับ')
+        if v.strip() == "":
+            raise ValueError("กรุณากรอกข้อมูลด้วยครับ")
         return v
 
 
@@ -177,21 +188,21 @@ class Diagnosis(DomainValueObject):
     treatment: str = Field(..., min_length=1, max_length=500)
     medicine_prescribed: list[MedicineInfo] = []
 
-    @field_validator('disease', 'treatment')
+    @field_validator("disease", "treatment")
     @classmethod
     def _must_not_be_blank(cls, v: str) -> str:
-        if v.strip() == '':
-            raise ValueError('กรุณากรอกข้อมูลด้วยครับ')
+        if v.strip() == "":
+            raise ValueError("กรุณากรอกข้อมูลด้วยครับ")
         return v
 
 
 class Payment(DomainValueObject):
-    amount: Decimal = Field(..., ge=Decimal('0.01'), le=Decimal('10000000'))
+    amount: Decimal = Field(..., ge=Decimal("0.01"), le=Decimal("10000000"))
     payment_type: PaymentType
 
 
 class LicenseNumber(DomainValueObject):
-    id: str = Field(..., min_length=7, max_length=7, pattern=r'^ว\.\d{5}$')
+    id: str = Field(..., min_length=7, max_length=7, pattern=r"^ว\.\d{5}$")
 
 
 class MedicalSpecialty(DomainValueObject):
@@ -205,12 +216,12 @@ class Number(DomainValueObject):
 class Version(DomainValueObject):
     number: int = Field(..., ge=1)
 
-    def increment(self) -> 'Version':
+    def increment(self) -> "Version":
         return Version(number=self.number + 1)
 
 
 class Username(DomainValueObject):
-    id: str = Field(..., min_length=5, max_length=20, pattern=r'^[a-zA-Z0-9_-]{5,20}$')
+    id: str = Field(..., min_length=5, max_length=20, pattern=r"^[a-zA-Z0-9_-]{5,20}$")
 
 
 class HashedPassword(DomainValueObject):

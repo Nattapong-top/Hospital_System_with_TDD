@@ -4,8 +4,11 @@ from uuid import UUID, uuid4
 
 from pydantic import Field
 
-from domain.custom_error import InvalidStatusTransitionError, MissingDiagnosisError, \
-    InvalidCancelRequestError
+from domain.custom_error import (
+    InvalidStatusTransitionError,
+    MissingDiagnosisError,
+    InvalidCancelRequestError,
+)
 from domain.entities import DomainEntity
 from domain.value_object import VitalSigns, Diagnosis, Version, QueueStatus
 
@@ -35,13 +38,19 @@ class Consultation(DomainEntity):
         self.finished_at = datetime.now()
         self.version = self.version.increment()
 
-    def _validate_in_progress_status_and_missing_diagnosis(self, diagnosis: Diagnosis) -> None:
+    def _validate_in_progress_status_and_missing_diagnosis(
+        self, diagnosis: Diagnosis
+    ) -> None:
         if self.status != QueueStatus.IN_PROGRESS:
-            raise InvalidStatusTransitionError(f'ไม่สามารถจบการตรวจได้ เพราะสถานะปัจจุบันคือ {self.status.value}')
+            raise InvalidStatusTransitionError(
+                f"ไม่สามารถจบการตรวจได้ เพราะสถานะปัจจุบันคือ {self.status.value}"
+            )
 
         if diagnosis is None:
             raise MissingDiagnosisError()
 
     def _validate_cancellation(self):
         if self.status == QueueStatus.COMPLETED:
-            raise InvalidCancelRequestError(f'ไม่สามารถยกเลิกการตรวจได้ เพราะสถานะปัจจุบันคือ {self.status.value}')
+            raise InvalidCancelRequestError(
+                f"ไม่สามารถยกเลิกการตรวจได้ เพราะสถานะปัจจุบันคือ {self.status.value}"
+            )

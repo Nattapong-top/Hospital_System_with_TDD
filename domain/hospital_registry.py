@@ -4,7 +4,9 @@ from __future__ import annotations
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from core.config import settings  # settings ไว้ที่หัวได้ เพราะเป็นแค่ข้อมูลตั้งค่า (Config)
+from core.config import (
+    settings,
+)  # settings ไว้ที่หัวได้ เพราะเป็นแค่ข้อมูลตั้งค่า (Config)
 
 # บล็อกนี้จะทำงานเฉพาะในสายตาของ PyCharm/Mypy เท่านั้นครับป๋า
 if TYPE_CHECKING:
@@ -14,8 +16,6 @@ if TYPE_CHECKING:
     from domain.domain_service.staff_service import StaffService
     from infrastructure.sqlite_patient_repository import SqlPatientRepository
     from infrastructure.sqlite_queue_repository import SqlQueueRepository
-    from infrastructure.sqllite_staff_repository import SqlStaffRepository
-    from infrastructure.sqlite_consultation_repository import SqlConsultationRepository
 
 
 class HospitalRegistry:
@@ -23,6 +23,7 @@ class HospitalRegistry:
     HospitalRegistry: ศูนย์บัญชาการ (Registry Pattern)
     ทำหน้าที่จัดการการสร้างและส่งมอบ Service/Repository ต่างๆ ให้กับระบบ
     """
+
     _BASE_DIR = Path(__file__).resolve().parent.parent
     _DB_PATH = None
 
@@ -33,7 +34,6 @@ class HospitalRegistry:
     _staff_service = None
     _patient_repo = None
     _consultation_repo = None
-
 
     @classmethod
     def get_db_path(cls) -> str:
@@ -58,7 +58,6 @@ class HospitalRegistry:
         cls._patient_repo = None
         cls._staff_service = None
 
-
     @classmethod
     def hard_reset(cls) -> None:
         """ล้างให้หมดจดจริงๆ รวมทั้งเส้นทาง DB"""
@@ -72,7 +71,9 @@ class HospitalRegistry:
         from infrastructure.sqlite_patient_repository import SqlPatientRepository
         from infrastructure.sqlite_queue_repository import SqlQueueRepository
         from infrastructure.sqllite_staff_repository import SqlStaffRepository
-        from infrastructure.sqlite_consultation_repository import SqlConsultationRepository
+        from infrastructure.sqlite_consultation_repository import (
+            SqlConsultationRepository,
+        )
 
         path = cls.get_db_path()
         if path != "test_database.db":
@@ -124,12 +125,12 @@ class HospitalRegistry:
             return cls._set_switch_to_new_exam_service()
         return cls.queue_service()
 
-
     @classmethod
     def patient_repo(cls) -> SqlPatientRepository:
         """เบิกตู้เก็บคนไข้ (Local Import)"""
         if cls._patient_repo is None:
             from infrastructure.sqlite_patient_repository import SqlPatientRepository
+
             cls._patient_repo = SqlPatientRepository(db_path=cls.get_db_path())
         return cls._patient_repo
 
@@ -137,8 +138,13 @@ class HospitalRegistry:
     def consultation_repo(cls):
         """เบิกตู้เก็บใบตรวจรักษา (สร้างแบบ Singleton)"""
         if cls._consultation_repo is None:
-            from infrastructure.sqlite_consultation_repository import SqlConsultationRepository
-            cls._consultation_repo = SqlConsultationRepository(db_path=cls.get_db_path())
+            from infrastructure.sqlite_consultation_repository import (
+                SqlConsultationRepository,
+            )
+
+            cls._consultation_repo = SqlConsultationRepository(
+                db_path=cls.get_db_path()
+            )
         return cls._consultation_repo
 
     @classmethod
@@ -146,12 +152,13 @@ class HospitalRegistry:
         """สร้างพนักงานใหม่ (Local Import)"""
         if cls._examination_service is None:
             from domain.domain_service.examination_service import ExaminationService
-            from infrastructure.sqlite_consultation_repository import SqlConsultationRepository
+            from infrastructure.sqlite_consultation_repository import (
+                SqlConsultationRepository,
+            )
 
             repo = SqlConsultationRepository(db_path=cls.get_db_path())
             cls._examination_service = ExaminationService(
-                consul_repo=repo,
-                queue_service=cls.queue_service()
+                consul_repo=repo, queue_service=cls.queue_service()
             )
         return cls._examination_service
 
@@ -159,4 +166,5 @@ class HospitalRegistry:
     def configure_queue(cls, queue_repo: SqlQueueRepository) -> None:
         """เมธอดสำหรับขาโมดิฟาย: ยัด Repo เองกับมือ"""
         from domain.domain_service.queue_service import QueueService
+
         cls._queue_service = QueueService(queue_repo=queue_repo)

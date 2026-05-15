@@ -7,8 +7,14 @@ from domain.custom_error import DuplicateNationalIDError, ConcurrentUpdateError
 from domain.entities import Patient
 from domain.interfaces import PatientRecord
 from domain.value_object import (
-    NationalID, PhoneNumber, Name, Address, Rights,
-    PatientRights, DateOfBirth, Version
+    NationalID,
+    PhoneNumber,
+    Name,
+    Address,
+    Rights,
+    PatientRights,
+    DateOfBirth,
+    Version,
 )
 
 
@@ -90,8 +96,10 @@ class SqlPatientRepository(PatientRecord):
                     conn.execute(self._INSERT_PATIENT_QUERY, data)
         except sqlite3.IntegrityError as error:
             # ดักจับ 'UNIQUE constraint failed' แล้วแปลงเป็น Domain Error
-            if 'national_id' in str(error):
-                raise DuplicateNationalIDError(f'เลขบัตรประชาชนนี้มีในระบบแล้ว: {patient.national_id.id}')
+            if "national_id" in str(error):
+                raise DuplicateNationalIDError(
+                    f"เลขบัตรประชาชนนี้มีในระบบแล้ว: {patient.national_id.id}"
+                )
             raise error
 
     def update(self, patient: Patient) -> None:
@@ -104,12 +112,16 @@ class SqlPatientRepository(PatientRecord):
             with conn:
                 cursor = conn.execute(self._UPDATE_QUERY, data)
                 if cursor.rowcount == 0:
-                    raise ConcurrentUpdateError(entity_name="ใบตรวจรักษา", entity_id=patient.id)
+                    raise ConcurrentUpdateError(
+                        entity_name="ใบตรวจรักษา", entity_id=patient.id
+                    )
 
     def get_by_national_id(self, national_id: NationalID) -> Optional[Patient]:
         """ค้นหาและปั้นร่าง (Rehydrate) ข้อมูลกลับเป็น Entity"""
         with closing(self._get_connection()) as conn:
-            row = conn.execute(self._SELECT_BY_NATIONAL_ID_QUERY, (str(national_id.id),)).fetchone()
+            row = conn.execute(
+                self._SELECT_BY_NATIONAL_ID_QUERY, (str(national_id.id),)
+            ).fetchone()
             return self._map_row_to_entity(row) if row else None
 
     # --- 3. Mapper Logic: แยกส่วนการแปลงข้อมูลออกไปให้ชัดเจน ---
@@ -132,16 +144,16 @@ class SqlPatientRepository(PatientRecord):
     def _map_row_to_entity(self, row: sqlite3.Row) -> Patient:
         """แปลง Row จากฐานข้อมูลกลับเป็น Entity (Rehydration)"""
         return Patient(
-            id=UUID(row['id']),
-            national_id=NationalID(id=row['national_id']),
-            first_name=Name(value=row['first_name']),
-            last_name=Name(value=row['last_name']),
-            phone_number=PhoneNumber(value=row['phone_number']),
-            date_of_birth=DateOfBirth.model_validate_json(row['date_of_birth']),
-            registered_address=Address.model_validate_json(row['registered_address']),
-            current_address=Address.model_validate_json(row['current_address']),
-            rights=Rights(rights_type=PatientRights(row['rights'])),
-            version=Version(number=row['version'])
+            id=UUID(row["id"]),
+            national_id=NationalID(id=row["national_id"]),
+            first_name=Name(value=row["first_name"]),
+            last_name=Name(value=row["last_name"]),
+            phone_number=PhoneNumber(value=row["phone_number"]),
+            date_of_birth=DateOfBirth.model_validate_json(row["date_of_birth"]),
+            registered_address=Address.model_validate_json(row["registered_address"]),
+            current_address=Address.model_validate_json(row["current_address"]),
+            rights=Rights(rights_type=PatientRights(row["rights"])),
+            version=Version(number=row["version"]),
         )
 
     def _check_version(self, patient: Patient) -> tuple[int, int]:
@@ -149,9 +161,9 @@ class SqlPatientRepository(PatientRecord):
         old_version = current_version - 1
         return current_version, old_version
 
-    def _map_entity_patient_update(self, current_version: int, old_version: int,
-                                   patient: Patient) -> tuple[str, str, str, str,
-    str, str, str, int, str, int]:
+    def _map_entity_patient_update(
+        self, current_version: int, old_version: int, patient: Patient
+    ) -> tuple[str, str, str, str, str, str, str, int, str, int]:
 
         data = (
             patient.first_name.value,
@@ -163,6 +175,6 @@ class SqlPatientRepository(PatientRecord):
             patient.rights.rights_type.value,
             current_version,
             str(patient.id),
-            old_version
+            old_version,
         )
         return data

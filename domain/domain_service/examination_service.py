@@ -10,12 +10,15 @@ from domain.value_object import VitalSigns, StaffRole, Diagnosis
 
 
 class ExaminationService:
-    def __init__(self, consul_repo: ConsultationRepository, queue_service: QueueService = None) -> None:
+    def __init__(
+        self, consul_repo: ConsultationRepository, queue_service: QueueService = None
+    ) -> None:
         self.consultation_repo = consul_repo
         self.queue_service: Optional[QueueService] = queue_service
 
-    def start_consultation(self, queue_id: UUID, staff: Staff,
-                           patient_id: UUID, vital_signs: VitalSigns) -> Consultation:
+    def start_consultation(
+        self, queue_id: UUID, staff: Staff, patient_id: UUID, vital_signs: VitalSigns
+    ) -> Consultation:
 
         self._check_role_nurse_or_doctor(staff)
         self._update_state_queue_to_in_progress(queue_id)
@@ -24,15 +27,15 @@ class ExaminationService:
             queue_id=queue_id,
             doctor_id=staff.staff_id,
             patient_id=patient_id,
-            vital_signs=vital_signs
+            vital_signs=vital_signs,
         )
 
         self.consultation_repo.save(new_consultation)
         return new_consultation
 
     def finish_consultation(
-            self, consultation_id: UUID, queue_id: UUID,
-            doctor: Staff, diagnosis: Diagnosis) -> Consultation:
+        self, consultation_id: UUID, queue_id: UUID, doctor: Staff, diagnosis: Diagnosis
+    ) -> Consultation:
 
         self._check_role_only_staff_doctor(doctor)
         consultation = self._get_consultation_or_raise(consultation_id)
@@ -40,12 +43,12 @@ class ExaminationService:
 
         consultation.complete_examination(diagnosis)
         self.consultation_repo.update(consultation)
-        
+
         return consultation
 
     def cancel_consultation(
-            self, consultation_id: UUID, queue_id: UUID,
-            staff: Staff) -> Consultation:
+        self, consultation_id: UUID, queue_id: UUID, staff: Staff
+    ) -> Consultation:
 
         self._check_role_nurse_or_doctor(staff)
         consultation = self._get_consultation_or_raise(consultation_id)
@@ -84,5 +87,3 @@ class ExaminationService:
     def _update_state_queue_to_cancel(self, queue_id) -> None:
         if self.queue_service:
             self.queue_service.cancel_visit(queue_id)
-
-

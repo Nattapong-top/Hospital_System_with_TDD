@@ -6,19 +6,26 @@ from uuid import UUID, uuid4
 
 from pydantic import BaseModel, ConfigDict
 
-from domain.custom_error import (
-    InvalidStatusTransitionError, MissingDiagnosisError, InvalidCancelRequestError)
+from domain.custom_error import InvalidStatusTransitionError, InvalidCancelRequestError
 from domain.value_object import (
-    Name, PhoneNumber, DateOfBirth, Address, NationalID, Rights,
-    LicenseNumber, MedicalSpecialty, Number, QueueStatus, VitalSigns,
-    Diagnosis, Version)
+    Name,
+    PhoneNumber,
+    DateOfBirth,
+    Address,
+    NationalID,
+    Rights,
+    LicenseNumber,
+    MedicalSpecialty,
+    Number,
+    QueueStatus,
+    VitalSigns,
+    Diagnosis,
+    Version,
+)
 
 
 class DomainEntity(BaseModel):
-    model_config = ConfigDict(
-        frozen=False,
-        validate_assignment=True
-    )
+    model_config = ConfigDict(frozen=False, validate_assignment=True)
 
 
 class Patient(DomainEntity):
@@ -38,8 +45,8 @@ class Patient(DomainEntity):
         # รันทุกครั้งที่มีการ set ค่า field ใดๆ ใน object นี้
         # hasattr เช็คว่า field นั้นมีค่าอยู่แล้วหรือยัง
         # (ถ้ายังไม่มี = กำลังสร้างครั้งแรก → ให้ผ่าน)
-        if name in ('id', 'national_id') and hasattr(self, name):
-            raise ValueError(f'ห้ามเปลี่ยน {name} ครับ')
+        if name in ("id", "national_id") and hasattr(self, name):
+            raise ValueError(f"ห้ามเปลี่ยน {name} ครับ")
 
         # ถ้าไม่ใช่ field ต้องห้าม → ให้ Pydantic จัดการต่อตามปกติ
         super().__setattr__(name, value)
@@ -78,8 +85,8 @@ class Doctor(DomainEntity):
         # รันทุกครั้งที่มีการ set ค่า field ใดๆ ใน object นี้
         # hasattr เช็คว่า field นั้นมีค่าอยู่แล้วหรือยัง
         # (ถ้ายังไม่มี = กำลังสร้างครั้งแรก → ให้ผ่าน)
-        if name in ('id', 'license_number') and hasattr(self, name):
-            raise ValueError(f'ห้ามเปลี่ยน {name} ครับ')
+        if name in ("id", "license_number") and hasattr(self, name):
+            raise ValueError(f"ห้ามเปลี่ยน {name} ครับ")
 
         # ถ้าไม่ใช่ field ต้องห้าม → ให้ Pydantic จัดการต่อตามปกติ
         super().__setattr__(name, value)
@@ -125,12 +132,18 @@ class Queue(DomainEntity):
 
     def _validate_cancellation(self):
         if self.status == QueueStatus.COMPLETED:
-            raise InvalidCancelRequestError(f'ไม่สามารถยกเลิกการตรวจได้ เพราะสถานะปัจจุบันคือ {self.status.value}')
+            raise InvalidCancelRequestError(
+                f"ไม่สามารถยกเลิกการตรวจได้ เพราะสถานะปัจจุบันคือ {self.status.value}"
+            )
 
     def _validate_in_progress_status(self) -> None:
         if self.status != QueueStatus.IN_PROGRESS:
-            raise InvalidStatusTransitionError(f'ไม่สามารถจบการตรวจได้ เพราะสถานะปัจจุบันคือ {self.status.value}')
+            raise InvalidStatusTransitionError(
+                f"ไม่สามารถจบการตรวจได้ เพราะสถานะปัจจุบันคือ {self.status.value}"
+            )
 
     def _validate_status(self):
         if self.status != QueueStatus.WAITING:
-            raise InvalidStatusTransitionError(f'ไม่สามารถเริ่มตรวจได้ เพราะสถานปัจจบันคือ {self.status.value}')
+            raise InvalidStatusTransitionError(
+                f"ไม่สามารถเริ่มตรวจได้ เพราะสถานปัจจบันคือ {self.status.value}"
+            )

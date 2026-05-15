@@ -3,8 +3,7 @@ import os
 from pytest import raises
 
 from domain.custom_error import ConcurrentUpdateError
-from domain.value_object import (
-    QueueStatus, Diagnosis, MedicineInfo)
+from domain.value_object import QueueStatus, Diagnosis, MedicineInfo
 
 
 def test_sqlite_queue_repo_should_save_and_retrieve_queue(patient, queue, queue_repo):
@@ -17,9 +16,10 @@ def test_sqlite_queue_repo_should_save_and_retrieve_queue(patient, queue, queue_
     assert retrieved.patient_id == pa_queue.patient_id
     assert retrieved.vital_signs.blood_pressure.systolic == 120
     assert retrieved.vital_signs.temperature.value == 39.0
-    assert retrieved.vital_signs.symptom == 'น้ำหมูกไหล ปวดหัว ตัวร้อน หนาวสั่น'
+    assert retrieved.vital_signs.symptom == "น้ำหมูกไหล ปวดหัว ตัวร้อน หนาวสั่น"
 
     os.remove(queue_repo.db_path)
+
 
 def test_sqlite_queue_repo_should_update_existing_queue(patient, queue, queue_repo):
     queue_repo.create_schema()
@@ -42,6 +42,7 @@ def test_sqlite_queue_repo_should_update_existing_queue(patient, queue, queue_re
 def test_sqlite_queue_repo_should_return_none_when_queue_not_found(queue_repo):
     queue_repo.create_schema()
     import uuid
+
     random_id = uuid.uuid4()
     result_queue = queue_repo.get_by_queue_id(random_id)
     assert result_queue is None
@@ -60,16 +61,21 @@ def test_sqlite_queue_repo_should_return_empty_list_when_db_is_empty(queue_repo)
 def test_sqlite_queue_repo_should_save_extremely_long_diagnosis(queue_repo, queue):
     queue_repo.create_schema()
     queue.start_consultation()
-    max_disease = 'ปวดหั' * 5
-    max_treatment = 'ตัวร้อ' * 5
-    queue.complete_visit(Diagnosis(
-        disease=max_disease,
-        treatment=max_treatment,
-        medicine_prescribed=[MedicineInfo(
-            name='Paracetamol',
-            strength='500mg',
-            frequency='วันละ 3 ครั้ง หลังอาหาร')]
-    ))
+    max_disease = "ปวดหั" * 5
+    max_treatment = "ตัวร้อ" * 5
+    queue.complete_visit(
+        Diagnosis(
+            disease=max_disease,
+            treatment=max_treatment,
+            medicine_prescribed=[
+                MedicineInfo(
+                    name="Paracetamol",
+                    strength="500mg",
+                    frequency="วันละ 3 ครั้ง หลังอาหาร",
+                )
+            ],
+        )
+    )
     queue_repo.save(queue)
     retrieved = queue_repo.get_by_queue_id(queue.id)
 
@@ -81,7 +87,9 @@ def test_sqlite_queue_repo_should_save_extremely_long_diagnosis(queue_repo, queu
     os.remove(queue_repo.db_path)
 
 
-def test_sqlite_queue_queue_repo_should_raise_error_when_concurrency_conflict(queue_repo, queue):
+def test_sqlite_queue_queue_repo_should_raise_error_when_concurrency_conflict(
+    queue_repo, queue
+):
     queue_repo.create_schema()
     queue_repo.save(queue)
 
@@ -100,7 +108,7 @@ def test_sqlite_queue_queue_repo_should_raise_error_when_concurrency_conflict(qu
         queue_repo.update(nurse_b_view)
         os.remove(queue_repo.db_path)
 
-    assert 'เนื่องจากมีคนอื่นแก้ไขข้อมูลนี้ไปแล้วก่อนหน้านี้' in str(error.value)
+    assert "เนื่องจากมีคนอื่นแก้ไขข้อมูลนี้ไปแล้วก่อนหน้านี้" in str(error.value)
 
 
 def test_sqlite_queue_repo_should_update_queue_when_have_id_(queue_repo, queue):

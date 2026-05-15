@@ -8,8 +8,16 @@ from domain.custom_error import ConcurrentUpdateError
 from domain.entities import Queue
 from domain.interfaces import QueueRecord
 from domain.value_object import (
-    QueueStatus, Version, VitalSigns, BloodPressure, Weight, Height,
-    Temperature, Number, MedicineInfo, Diagnosis
+    QueueStatus,
+    Version,
+    VitalSigns,
+    BloodPressure,
+    Weight,
+    Height,
+    Temperature,
+    Number,
+    MedicineInfo,
+    Diagnosis,
 )
 
 
@@ -17,7 +25,7 @@ class SqlQueueRepository(QueueRecord):
     # =====================================================================
     # 1. SQL CONSTANTS (ศูนย์รวมคำสั่ง DB ทั้งหมดอยู่ที่นี่ที่เดียว)
     # =====================================================================
-    _CREATE_SCHEMA_QUERY = '''
+    _CREATE_SCHEMA_QUERY = """
         CREATE TABLE IF NOT EXISTS queue (
             q_id TEXT PRIMARY KEY, 
             p_id TEXT NOT NULL, 
@@ -35,22 +43,22 @@ class SqlQueueRepository(QueueRecord):
             diag_treatment TEXT, 
             diag_meds TEXT
         )
-    '''
+    """
 
-    _INSERT_QUEUE_QUERY = '''
+    _INSERT_QUEUE_QUERY = """
         INSERT INTO queue
         (q_id, p_id, p_num, q_date, status, ver, bp_sys, bp_dia, 
         w_kg, h_cm, temp_c, symptom, diag_disease, diag_treatment, diag_meds)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    '''
+    """
 
-    _UPDATE_QUEUE_QUERY = '''
+    _UPDATE_QUEUE_QUERY = """
         UPDATE queue SET
         status = ?, ver = ?,
         bp_sys = ?, bp_dia = ?, w_kg = ?, h_cm = ?, temp_c = ?, 
         symptom = ?, diag_disease = ?, diag_treatment = ?, diag_meds = ?
         WHERE q_id = ? AND ver = ? 
-    '''
+    """
 
     _SELECT_ACTIVE_BY_PATIENT_QUERY = """
         SELECT * FROM queue 
@@ -69,8 +77,8 @@ class SqlQueueRepository(QueueRecord):
         SELECT q_id, p_id, p_num, q_date, status FROM queue WHERE q_date = ?
     """
 
-    _SELECT_BY_ID_QUERY = 'SELECT * FROM queue WHERE q_id = ?'
-    _SELECT_ALL_QUERY = 'SELECT * FROM queue'
+    _SELECT_BY_ID_QUERY = "SELECT * FROM queue WHERE q_id = ?"
+    _SELECT_ALL_QUERY = "SELECT * FROM queue"
 
     # =====================================================================
     # 2. CORE METHODS (สั้น กระชับ อ่านปรู๊ดเดียวรู้เรื่อง)
@@ -112,14 +120,15 @@ class SqlQueueRepository(QueueRecord):
                 old_ver = queue.version.number - 1
                 diag_data = self._prepare_diagnosis(queue)
                 data = self._map_patient_to_data_for_sql(
-                    current_ver, diag_data, old_ver, queue)
+                    current_ver, diag_data, old_ver, queue
+                )
 
                 cursor = conn.execute(self._UPDATE_QUEUE_QUERY, data)
 
             # 🚩 3. ถ้าไม่มีแถวไหนถูกอัปเดต แปลว่า Version ไม่ตรง!
             if cursor.rowcount == 0:
                 raise ConcurrentUpdateError(entity_name="คิวตรวจ", entity_id=queue.id)
-            
+
     def get_by_queue_id(self, queue_id: UUID) -> Queue | None:
         with closing(self._get_connection()) as conn:
             row = conn.execute(self._SELECT_BY_ID_QUERY, (str(queue_id),)).fetchone()
@@ -143,14 +152,16 @@ class SqlQueueRepository(QueueRecord):
             # ถ้าเจอของ ก็แปลงจาก Row กลับมาเป็น Object ให้หัวหน้าใช้งานต่อได้
             return self._map_row_to_entity(row)
 
-    def find_active_queue_by_patient(self, patient_id: UUID, queue_date: date) -> Queue | None:
+    def find_active_queue_by_patient(
+        self, patient_id: UUID, queue_date: date
+    ) -> Queue | None:
         """ไปค้นในตู้เหล็กดูว่า วันนี้คนไข้คนนี้มีคิวที่ยังค้างอยู่ในระบบไหม
         ไปค้นในตู้เหล็กดูว่า วันนี้คนไข้คนนี้มีคิวที่ยังค้างอยู่ในระบบไหม"""
         with closing(self._get_connection()) as conn:
             # ส่งค่า p_id (รหัสคนไข้) และ q_date (วันที่วันนี้) เข้าไปเช็ค
             row = conn.execute(
                 self._SELECT_ACTIVE_BY_PATIENT_QUERY,
-                (str(patient_id), queue_date.isoformat())
+                (str(patient_id), queue_date.isoformat()),
             ).fetchone()
 
             if not row:
@@ -161,8 +172,8 @@ class SqlQueueRepository(QueueRecord):
         with closing(self._get_connection()) as conn:
             conn.row_factory = sqlite3.Row
             rows = conn.execute(
-                self._SELECT_ALL_QUEUES_TODAY_QUERY,
-                (today.isoformat(),)).fetchall()
+                self._SELECT_ALL_QUEUES_TODAY_QUERY, (today.isoformat(),)
+            ).fetchall()
 
         if not rows:
             return []
@@ -171,13 +182,13 @@ class SqlQueueRepository(QueueRecord):
         for row in rows:
             # แปลงข้อมูลแต่ละแถว (row) กลับมาเป็น Queue Object
             q = Queue(
-                id=UUID(row['q_id']),
-                patient_id=UUID(row['p_id']),
-                queue_number=Number(id=row['p_num']),
+                id=UUID(row["q_id"]),
+                patient_id=UUID(row["p_id"]),
+                queue_number=Number(id=row["p_num"]),
                 # fromisoformat(): คือการแปลงจาก String(ตัวหนังสือจาก DB)
                 # -> Object(วันที่)...(ใช้ตอนจะเอาข้อมูลเข้าบ้าน / Domain)
-                queue_date=date.fromisoformat(row['q_date']),
-                status=QueueStatus(row['status']),
+                queue_date=date.fromisoformat(row["q_date"]),
+                status=QueueStatus(row["status"]),
             )
             queues.append(q)
         return queues
@@ -192,7 +203,9 @@ class SqlQueueRepository(QueueRecord):
         return {
             "disease": queue.diagnosis.disease,
             "treatment": queue.diagnosis.treatment,
-            "meds": json.dumps([m.model_dump() for m in queue.diagnosis.medicine_prescribed])
+            "meds": json.dumps(
+                [m.model_dump() for m in queue.diagnosis.medicine_prescribed]
+            ),
         }
 
     def _map_entity_to_tuple(self, queue: Queue, diag_data: dict) -> tuple:
@@ -210,37 +223,63 @@ class SqlQueueRepository(QueueRecord):
             queue.vital_signs.height.value,
             queue.vital_signs.temperature.value,
             queue.vital_signs.symptom,
-            diag_data["disease"], diag_data["treatment"], diag_data["meds"]
+            diag_data["disease"],
+            diag_data["treatment"],
+            diag_data["meds"],
         )
 
     def _map_row_to_entity(self, row: sqlite3.Row) -> Queue:
         """แปลง Row จาก SQLite คืนเป็น Object"""
         diagnosis_obj = None
-        if row['diag_disease']:
-            meds_data = json.loads(row['diag_meds']) if row['diag_meds'] else []
+        if row["diag_disease"]:
+            meds_data = json.loads(row["diag_meds"]) if row["diag_meds"] else []
             meds = [MedicineInfo(**m) for m in meds_data]
             diagnosis_obj = Diagnosis(
-                disease=row['diag_disease'], treatment=row['diag_treatment'], medicine_prescribed=meds,
+                disease=row["diag_disease"],
+                treatment=row["diag_treatment"],
+                medicine_prescribed=meds,
             )
 
         return Queue(
-            id=UUID(row['q_id']),
-            patient_id=UUID(row['p_id']),
-            queue_number=Number(id=row['p_num']),
-            queue_date=date.fromisoformat(row['q_date']),
-            status=QueueStatus(row['status']),
-            version=Version(number=row['ver']),
+            id=UUID(row["q_id"]),
+            patient_id=UUID(row["p_id"]),
+            queue_number=Number(id=row["p_num"]),
+            queue_date=date.fromisoformat(row["q_date"]),
+            status=QueueStatus(row["status"]),
+            version=Version(number=row["ver"]),
             vital_signs=VitalSigns(
-                blood_pressure=BloodPressure(systolic=row['bp_sys'], diastolic=row['bp_dia']),
-                weight=Weight(value=row['w_kg']), height=Height(value=row['h_cm']),
-                temperature=Temperature(value=row['temp_c']), symptom=row['symptom']
+                blood_pressure=BloodPressure(
+                    systolic=row["bp_sys"], diastolic=row["bp_dia"]
+                ),
+                weight=Weight(value=row["w_kg"]),
+                height=Height(value=row["h_cm"]),
+                temperature=Temperature(value=row["temp_c"]),
+                symptom=row["symptom"],
             ),
-            diagnosis=diagnosis_obj
+            diagnosis=diagnosis_obj,
         )
 
-    def _map_patient_to_data_for_sql(self, current_ver: int, diag_data: dict[str, str | None], old_ver: int,
-                                     queue: Queue) -> \
-    tuple[str, int, int, int, float, float, float, str, str | None, str | None, str | None, str, int]:
+    def _map_patient_to_data_for_sql(
+        self,
+        current_ver: int,
+        diag_data: dict[str, str | None],
+        old_ver: int,
+        queue: Queue,
+    ) -> tuple[
+        str,
+        int,
+        int,
+        int,
+        float,
+        float,
+        float,
+        str,
+        str | None,
+        str | None,
+        str | None,
+        str,
+        int,
+    ]:
         data = (
             queue.status.value,
             current_ver,  # เลขใหม่
@@ -254,6 +293,6 @@ class SqlQueueRepository(QueueRecord):
             diag_data["treatment"],
             diag_data["meds"],
             str(queue.id),
-            old_ver  # 🚩 ต้อง WHERE ด้วยเลขเก่า
+            old_ver,  # 🚩 ต้อง WHERE ด้วยเลขเก่า
         )
         return data
