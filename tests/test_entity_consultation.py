@@ -2,10 +2,11 @@ from pytest import raises
 from domain.consultation_entities import Consultation
 from domain.custom_error import MissingDiagnosisError, InvalidStatusTransitionError
 from domain.value_object import QueueStatus
-from tests.conftest import new_staff_doctor, new_patient
 
 
-def test_create_consultation_should_have_correct_initial_data(new_queue, new_staff_doctor, new_patient):
+def test_create_consultation_should_have_correct_initial_data(
+    new_queue, new_staff_doctor, new_patient
+):
     start_consul = Consultation(
         queue_id=new_queue.id,
         doctor_id=new_staff_doctor.staff_id,
@@ -18,13 +19,14 @@ def test_create_consultation_should_have_correct_initial_data(new_queue, new_sta
     assert start_consul.queue_id == new_queue.id
     assert start_consul.patient_id == new_queue.patient_id
     assert start_consul.doctor_id == new_staff_doctor.staff_id
-    assert start_consul.status.value == 'กำลังพบหมอ'
+    assert start_consul.status.value == "กำลังพบหมอ"
     assert start_consul.version.number == 1
     assert start_consul.started_at is not None
 
 
 def test_complete_examination_should_update_diagnosis_and_increment_version(
-        new_consultation, diagnosis):
+    new_consultation, diagnosis
+):
     initial_version = new_consultation.version.number
 
     new_consultation.complete_examination(diagnosis)
@@ -46,7 +48,9 @@ def test_cancel_examination_when_status_in_progress_should_success(new_consultat
     assert consul.status == QueueStatus.CANCELLED
 
 
-def test_cancel_examination_when_status_in_progress_should_fail(new_consultation, diagnosis):
+def test_cancel_examination_when_status_in_progress_should_fail(
+    new_consultation, diagnosis
+):
     consul = new_consultation
     consul.status = QueueStatus.WAITING
     with raises(InvalidStatusTransitionError):

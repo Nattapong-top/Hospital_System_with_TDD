@@ -14,7 +14,7 @@ class SqlConsultationRepository(ConsultationRepository):
     # =====================================================================
     # 1. SQL CONSTANTS (ศูนย์รวมคำสั่ง DB)
     # =====================================================================
-    _AUTO_CREATE_SCHEMA_QUERY = '''
+    _AUTO_CREATE_SCHEMA_QUERY = """
         CREATE TABLE IF NOT EXISTS consultations (
             id TEXT PRIMARY KEY,
             queue_id TEXT NOT NULL,
@@ -27,29 +27,29 @@ class SqlConsultationRepository(ConsultationRepository):
             finished_at TEXT,                -- เก็บ ISO format (เป็น NULL ได้)
             version INTEGER NOT NULL DEFAULT 1
         )
-    '''
+    """
 
-    _INSERT_CONSULTATION_QUERY = '''
+    _INSERT_CONSULTATION_QUERY = """
         INSERT INTO consultations
         (id, queue_id, doctor_id, patient_id, vital_signs, diagnosis, 
          status, started_at, finished_at, version)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    '''
+    """
 
-    _UPDATE_CONSULTATION_QUERY = '''
+    _UPDATE_CONSULTATION_QUERY = """
         UPDATE consultations SET
         vital_signs = ?, diagnosis = ?, status = ?, 
         finished_at = ?, version = ?
         WHERE id = ? AND version = ?
-    '''
+    """
 
-    _SELECT_BY_QUEUE_ID_QUERY = '''
+    _SELECT_BY_QUEUE_ID_QUERY = """
         SELECT * FROM consultations WHERE queue_id = ?
-    '''
+    """
 
-    _SELECT_BY_CONSULTATION_ID_QUERY = '''
+    _SELECT_BY_CONSULTATION_ID_QUERY = """
         SELECT * FROM consultations WHERE id = ?
-    '''
+    """
 
     # =====================================================================
     # 2. LIFECYCLE & DB CONNECTION
@@ -81,24 +81,32 @@ class SqlConsultationRepository(ConsultationRepository):
         """อัปเดตใบตรวจ พร้อม Optimistic Locking ป้องกันหมอเซฟทับกัน"""
         current_version, old_version = self._check_version(consultation)
 
-        data = self._map_update_entity_to_sql_schema(consultation, current_version, old_version)
+        data = self._map_update_entity_to_sql_schema(
+            consultation, current_version, old_version
+        )
 
         with closing(self._get_connection()) as conn:
             with conn:
                 cursor = conn.execute(self._UPDATE_CONSULTATION_QUERY, data)
                 if cursor.rowcount == 0:
-                    raise ConcurrentUpdateError(entity_name="ใบตรวจรักษา", entity_id=consultation.id)
+                    raise ConcurrentUpdateError(
+                        entity_name="ใบตรวจรักษา", entity_id=consultation.id
+                    )
 
     def get_by_queue_id(self, queue_id: UUID) -> Consultation | None:
         with closing(self._get_connection()) as conn:
-            row = conn.execute(self._SELECT_BY_QUEUE_ID_QUERY, (str(queue_id),)).fetchone()
+            row = conn.execute(
+                self._SELECT_BY_QUEUE_ID_QUERY, (str(queue_id),)
+            ).fetchone()
             if not row:
                 return None
             return self._map_sql_schema_to_entity(row)
 
     def get_by_consultation_id(self, consultation_id: UUID) -> Consultation | None:
         with closing(self._get_connection()) as conn:
-            row = conn.execute(self._SELECT_BY_CONSULTATION_ID_QUERY, (str(consultation_id),)).fetchone()
+            row = conn.execute(
+                self._SELECT_BY_CONSULTATION_ID_QUERY, (str(consultation_id),)
+            ).fetchone()
             if not row:
                 return None
             return self._map_sql_schema_to_entity(row)
@@ -118,37 +126,53 @@ class SqlConsultationRepository(ConsultationRepository):
             str(consultation.doctor_id),
             str(consultation.patient_id),
             consultation.vital_signs.model_dump_json(),
-            consultation.diagnosis.model_dump_json() if consultation.diagnosis else None,
+            (
+                consultation.diagnosis.model_dump_json()
+                if consultation.diagnosis
+                else None
+            ),
             consultation.status.value,
             consultation.started_at.isoformat(),
             consultation.finished_at.isoformat() if consultation.finished_at else None,
-            consultation.version.number
+            consultation.version.number,
         )
 
     def _map_sql_schema_to_entity(self, row: sqlite3.Row) -> Consultation:
         return Consultation(
-            id=UUID(row['id']),
-            queue_id=UUID(row['queue_id']),
-            doctor_id=UUID(row['doctor_id']),
-            patient_id=UUID(row['patient_id']),
-            vital_signs=VitalSigns.model_validate_json(row['vital_signs']),
-            diagnosis=Diagnosis.model_validate_json(row['diagnosis']) if row['diagnosis'] else None,
-            status=QueueStatus(row['status']),
-            started_at=datetime.fromisoformat(row['started_at']),
-            finished_at=datetime.fromisoformat(row['finished_at']) if row['finished_at'] else None,
-            version=Version(number=row['version'])
+            id=UUID(row["id"]),
+            queue_id=UUID(row["queue_id"]),
+            doctor_id=UUID(row["doctor_id"]),
+            patient_id=UUID(row["patient_id"]),
+            vital_signs=VitalSigns.model_validate_json(row["vital_signs"]),
+            diagnosis=(
+                Diagnosis.model_validate_json(row["diagnosis"])
+                if row["diagnosis"]
+                else None
+            ),
+            status=QueueStatus(row["status"]),
+            started_at=datetime.fromisoformat(row["started_at"]),
+            finished_at=(
+                datetime.fromisoformat(row["finished_at"])
+                if row["finished_at"]
+                else None
+            ),
+            version=Version(number=row["version"]),
         )
 
-    def _map_update_entity_to_sql_schema(self, consultation: Consultation, current_version: int, old_version: int) -> tuple[
-        str, str | None, str, str | None, int, str, int]:
+    def _map_update_entity_to_sql_schema(
+        self, consultation: Consultation, current_version: int, old_version: int
+    ) -> tuple[str, str | None, str, str | None, int, str, int]:
         data = (
             consultation.vital_signs.model_dump_json(),
-            consultation.diagnosis.model_dump_json() if consultation.diagnosis else None,
+            (
+                consultation.diagnosis.model_dump_json()
+                if consultation.diagnosis
+                else None
+            ),
             consultation.status.value,
             consultation.finished_at.isoformat() if consultation.finished_at else None,
             current_version,
-
             str(consultation.id),
-            old_version
+            old_version,
         )
         return data

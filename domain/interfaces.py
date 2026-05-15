@@ -27,7 +27,9 @@ class QueueRecord(ABC):
         pass
 
     @abstractmethod
-    def find_active_queue_by_patient(self, patient_id: UUID, queue_date: date) -> Optional[Queue]:
+    def find_active_queue_by_patient(
+        self, patient_id: UUID, queue_date: date
+    ) -> Optional[Queue]:
         """เช็คว่าคนไข้คนนี้มีคิวที่ยังตรวจไม่เสร็จในวันนี้ไหม"""
         pass
 
@@ -84,6 +86,7 @@ class StaffRepository(ABC):
     def get_by_national_id_staff(self, national_id: NationalID) -> Optional[NationalID]:
         """ค้นหาพนักงานด้วย national_id"""
         pass
+
 
 class ConsultationRepository(ABC):
     @abstractmethod

@@ -28,4 +28,6 @@ jobs:
 
     - name: Test with pytest
       run: |
+        ruff check .
+        black --check .
         pytest

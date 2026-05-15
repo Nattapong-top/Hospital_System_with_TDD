@@ -6,7 +6,6 @@ from domain.custom_error import DuplicateUsernameError
 from domain.domain_service.staff_service import StaffService
 from domain.hospital_registry import HospitalRegistry
 from domain.value_object import StaffRole, HashedPassword
-from tests.conftest import new_register_staff, InMem_staff_repo
 
 
 def test_staff_service_register_new_staff_should_succeed(InMem_staff_repo):
@@ -16,19 +15,22 @@ def test_staff_service_register_new_staff_should_succeed(InMem_staff_repo):
         national_id_str="1234567890123",
         first_name_str="ณัฐพงศ์",
         last_name_str="คนรักษาดี",
-        dob_year=1990, dob_month=12, dob_day=31,
+        dob_year=1990,
+        dob_month=12,
+        dob_day=31,
         phone_number_str="0999999999",
-        role=StaffRole.DOCTOR
+        role=StaffRole.DOCTOR,
     )
     assert new_staff.username.id == "nattapong-top"
-    assert new_staff.national_id.id == '1234567890123'
+    assert new_staff.national_id.id == "1234567890123"
     assert isinstance(new_staff.hashed_password, HashedPassword)
     assert new_staff.hashed_password.value != "Paa-TopIT_12123"
     assert new_staff.role == StaffRole.DOCTOR
 
 
-def test_staff_service_register_staff_with_staff_id_should_type_uuid_valid(new_register_staff,
-                                                                           InMem_staff_repo):
+def test_staff_service_register_staff_with_staff_id_should_type_uuid_valid(
+    new_register_staff, InMem_staff_repo
+):
     staff_1 = new_register_staff
     staff_2 = StaffService(InMem_staff_repo).register_staff(
         username_str="PaaTop-IT",
@@ -36,16 +38,17 @@ def test_staff_service_register_staff_with_staff_id_should_type_uuid_valid(new_r
         national_id_str="1234567890123",
         first_name_str="ณัฐพงศ์",
         last_name_str="คนรักษาดี",
-        dob_year=1990, dob_month=12, dob_day=31,
+        dob_year=1990,
+        dob_month=12,
+        dob_day=31,
         phone_number_str="0999999999",
-        role=StaffRole.DOCTOR
+        role=StaffRole.DOCTOR,
     )
 
     assert staff_1.staff_id is not None
     assert staff_2.staff_id is not None
     assert isinstance(staff_1.staff_id, UUID)
     assert staff_1.staff_id != staff_2.staff_id
-
 
 
 def test_staff_service_register_staff_should_save_to_repo_success():
@@ -56,17 +59,20 @@ def test_staff_service_register_staff_should_save_to_repo_success():
         national_id_str="1234567890123",
         first_name_str="ณัฐพงศ์",
         last_name_str="คนรักษาดี",
-        dob_year=1990, dob_month=12, dob_day=31,
+        dob_year=1990,
+        dob_month=12,
+        dob_day=31,
         phone_number_str="0999999999",
-        role=StaffRole.DOCTOR
+        role=StaffRole.DOCTOR,
     )
     db_staff = service.get_by_username(new_staff.username.id)
     assert db_staff is not None
     assert new_staff == db_staff
 
 
-def test_staff_service_register_staff_with_duplicate_username_should_error(new_register_staff, staff_service,
-                                                                           InMem_staff_repo):
+def test_staff_service_register_staff_with_duplicate_username_should_error(
+    new_register_staff, staff_service, InMem_staff_repo
+):
     with raises(DuplicateUsernameError) as err:
         staff_service.register_staff(
             username_str="nattapong-top",
@@ -74,20 +80,23 @@ def test_staff_service_register_staff_with_duplicate_username_should_error(new_r
             national_id_str="1234567890123",
             first_name_str="ณัฐพงศ์",
             last_name_str="คนรักษาดี",
-            dob_year=1990, dob_month=12, dob_day=31,
+            dob_year=1990,
+            dob_month=12,
+            dob_day=31,
             phone_number_str="0999999999",
-            role=StaffRole.DOCTOR
+            role=StaffRole.DOCTOR,
         )
 
-    assert 'มีคนใช้แล้ว' in str(err.value)
+    assert "มีคนใช้แล้ว" in str(err.value)
 
 
-def test_staff_service_with_authenticate_should_return_staff_when_credential_are_correct(new_register_staff,
-                                                                                         staff_service):
+def test_staff_service_with_authenticate_should_return_staff_when_credential_are_correct(
+    new_register_staff, staff_service
+):
     staff = new_register_staff
     auth_staff = staff_service.authenticate_staff(
-        username_str='nattapong-top',
-        plain_password="Paa-TopIT_12123")
+        username_str="nattapong-top", plain_password="Paa-TopIT_12123"
+    )
 
     assert auth_staff is not None
     assert auth_staff.username.id == staff.username.id
@@ -95,25 +104,27 @@ def test_staff_service_with_authenticate_should_return_staff_when_credential_are
     assert isinstance(auth_staff.hashed_password, HashedPassword)
 
 
-def test_staff_service_with_authenticate_should_return_none_when_are_password_incorrect(new_register_staff,
-                                                                                        staff_service):
+def test_staff_service_with_authenticate_should_return_none_when_are_password_incorrect(
+    new_register_staff, staff_service
+):
     auth_staff = staff_service.authenticate_staff(
-        username_str='nattapong-top',
-        plain_password="Paa-Top_No_IT_5555"
+        username_str="nattapong-top", plain_password="Paa-Top_No_IT_5555"
     )
     assert auth_staff is None
 
 
-def test_staff_service_with_authenticate_should_return_none_when_are_username_incorrect(new_register_staff,
-                                                                                        staff_service):
+def test_staff_service_with_authenticate_should_return_none_when_are_username_incorrect(
+    new_register_staff, staff_service
+):
     auth_staff = staff_service.authenticate_staff(
-        username_str='Top_No_IT',
-        plain_password="Paa-TopIT_12123"
+        username_str="Top_No_IT", plain_password="Paa-TopIT_12123"
     )
     assert auth_staff is None
 
 
-def test_staff_service_with_authenticate_should_return_none_when_is_active_false(staff_service):
+def test_staff_service_with_authenticate_should_return_none_when_is_active_false(
+    staff_service,
+):
     # 1. สมัครพนักงานใหม่เลย ใช้เลขบัตรและ Username ที่ "ไม่ซ้ำ" กับเทสข้ออื่น
     staff = staff_service.register_staff(
         username_str="banned_doctor_999",  # 🚩 เปลี่ยนชื่อไม่ให้ซ้ำ
@@ -121,9 +132,11 @@ def test_staff_service_with_authenticate_should_return_none_when_is_active_false
         national_id_str="9999999978999",  # 🚩 เปลี่ยนเลขบัตรไม่ให้ซ้ำ
         first_name_str="หมอโดน",
         last_name_str="แบน",
-        dob_year=1990, dob_month=12, dob_day=31,
+        dob_year=1990,
+        dob_month=12,
+        dob_day=31,
         phone_number_str="0999999999",
-        role=StaffRole.DOCTOR
+        role=StaffRole.DOCTOR,
     )
 
     # ตอนนี้มั่นใจได้ 100% ว่ามีหมอคนนี้อยู่ใน DB แน่นอนและเวอร์ชันเป็น 1
@@ -133,15 +146,16 @@ def test_staff_service_with_authenticate_should_return_none_when_is_active_false
 
     # 4. ลองล็อกอินด้วยรหัสสด
     auth_staff = staff_service.authenticate_staff(
-        username_str="banned_doctor_999",
-        plain_password="Paa-TopIT_12123"
+        username_str="banned_doctor_999", plain_password="Paa-TopIT_12123"
     )
 
     # 5. ต้องเข้าไม่ได้ (return None)
     assert auth_staff is None
 
 
-def test_staff_service_with_suspend_should_return_none_when_is_active_false(staff_service):
+def test_staff_service_with_suspend_should_return_none_when_is_active_false(
+    staff_service,
+):
     # 1. สมัครพนักงานใหม่เลย ใช้เลขบัตรและ Username ที่ "ไม่ซ้ำ" กับเทสข้ออื่น
     staff = staff_service.register_staff(
         username_str="banned_doctor_999",  # 🚩 เปลี่ยนชื่อไม่ให้ซ้ำ
@@ -149,9 +163,11 @@ def test_staff_service_with_suspend_should_return_none_when_is_active_false(staf
         national_id_str="9999999978999",  # 🚩 เปลี่ยนเลขบัตรไม่ให้ซ้ำ
         first_name_str="หมอโดน",
         last_name_str="แบน",
-        dob_year=1990, dob_month=12, dob_day=31,
+        dob_year=1990,
+        dob_month=12,
+        dob_day=31,
         phone_number_str="0999999999",
-        role=StaffRole.DOCTOR
+        role=StaffRole.DOCTOR,
     )
 
     # ตอนนี้มั่นใจได้ 100% ว่ามีหมอคนนี้อยู่ใน DB แน่นอนและเวอร์ชันเป็น 1
@@ -163,17 +179,18 @@ def test_staff_service_with_suspend_should_return_none_when_is_active_false(staf
     assert suspend_staff.is_active is False
     assert suspend_staff.version.number == 2
 
-
     # 4. ลองล็อกอินด้วยรหัสสด
     auth_staff = staff_service.authenticate_staff(
-        username_str="banned_doctor_999",
-        plain_password="Paa-TopIT_12123"
+        username_str="banned_doctor_999", plain_password="Paa-TopIT_12123"
     )
 
     # 5. ต้องเข้าไม่ได้ (return None)
     assert auth_staff is None
 
-def test_staff_service_with_reactivate_should_return_staff_when_authenticated(staff_service, new_register_staff):
+
+def test_staff_service_with_reactivate_should_return_staff_when_authenticated(
+    staff_service, new_register_staff
+):
     staff_service.suspend_staff(new_register_staff.staff_id)
     suspend_staff = staff_service.get_by_staff_id(new_register_staff.staff_id)
     assert suspend_staff.version.number == 2

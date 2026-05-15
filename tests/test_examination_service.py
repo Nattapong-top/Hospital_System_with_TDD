@@ -2,15 +2,20 @@ from uuid import uuid4
 
 from pytest import raises
 
-from domain.custom_error import PermissionDeniedError, InvalidStatusTransitionError, ConsultationNotFoundError, \
-    MissingDiagnosisError
+from domain.custom_error import (
+    PermissionDeniedError,
+    InvalidStatusTransitionError,
+    ConsultationNotFoundError,
+    MissingDiagnosisError,
+)
 from domain.domain_service.examination_service import ExaminationService
 from domain.value_object import QueueStatus
-from tests.conftest import new_queue, new_staff_doctor, InMem_consul_repo
 from tests.fake_repository.fake_repository import InMemConsulRepo
 
 
-def test_exam_service_start_consul_should_succeed(new_queue, new_staff_doctor, InMem_consul_repo):
+def test_exam_service_start_consul_should_succeed(
+    new_queue, new_staff_doctor, InMem_consul_repo
+):
     consul = ExaminationService(InMem_consul_repo).start_consultation(
         queue_id=new_queue.id,
         staff=new_staff_doctor,
@@ -19,10 +24,12 @@ def test_exam_service_start_consul_should_succeed(new_queue, new_staff_doctor, I
     )
     assert consul is not None
     assert consul.queue_id == new_queue.id
-    assert consul.status.value == 'กำลังพบหมอ'
+    assert consul.status.value == "กำลังพบหมอ"
 
 
-def test_start_consultation_by_other_role_should_raise_permission_denied_error(new_queue, new_staff_admin, InMem_consul_repo):
+def test_start_consultation_by_other_role_should_raise_permission_denied_error(
+    new_queue, new_staff_admin, InMem_consul_repo
+):
     """โจทย์: ถ้าส่ง admin มาเริ่มตรวจ ระบบต้องระเบิด Error ทันที"""
     # 1. Arrange: เตรียม admin (ที่มี role = ADMIN)
     service = ExaminationService(InMem_consul_repo)
@@ -33,24 +40,25 @@ def test_start_consultation_by_other_role_should_raise_permission_denied_error(n
             queue_id=new_queue.id,
             staff=new_staff_admin,  # 🚩 ส่งตัว Staff เข้าไปเลยจะได้เช็ค Role ได้
             patient_id=new_queue.patient_id,
-            vital_signs=new_queue.vital_signs
+            vital_signs=new_queue.vital_signs,
         )
-    assert 'คุณไม่มีสิทธิ์ในการทำรายการนี้' in str(err.value)
+    assert "คุณไม่มีสิทธิ์ในการทำรายการนี้" in str(err.value)
 
-def test_start_consultation_by_nurse_should_success(new_staff_nurse, new_queue, InMem_consul_repo):
+
+def test_start_consultation_by_nurse_should_success(
+    new_staff_nurse, new_queue, InMem_consul_repo
+):
     service = ExaminationService(InMem_consul_repo)
     nurse_start = service.start_consultation(
         queue_id=new_queue.id,
         staff=new_staff_nurse,
         patient_id=new_queue.patient_id,
-        vital_signs=new_queue.vital_signs
-     )
+        vital_signs=new_queue.vital_signs,
+    )
     assert nurse_start is not None
     assert nurse_start is not None
     assert nurse_start.queue_id == new_queue.id
-    assert nurse_start.status.value == 'กำลังพบหมอ'
-
-
+    assert nurse_start.status.value == "กำลังพบหมอ"
 
 
 def test_exam_service_start_consul_should_save_to_repo(new_queue, new_staff_doctor):
@@ -66,20 +74,24 @@ def test_exam_service_start_consul_should_save_to_repo(new_queue, new_staff_doct
     assert consul_db.queue_id == new_queue.id
     assert consul_db.doctor_id == new_staff_doctor.staff_id
     assert consul_db.patient_id == new_queue.patient_id
-    assert consul_db.status.value == 'กำลังพบหมอ'
+    assert consul_db.status.value == "กำลังพบหมอ"
 
-def test_exam_service_start_consul_should_get_by_consul_id_form_repo(new_examination,new_queue, new_staff_doctor,exam_service):
+
+def test_exam_service_start_consul_should_get_by_consul_id_form_repo(
+    new_examination, new_queue, new_staff_doctor, exam_service
+):
     service = exam_service
     consul_db = service.get_by_consultation_id(new_examination.id)
     assert consul_db is not None
     assert consul_db.queue_id == new_queue.id
     assert consul_db.doctor_id == new_staff_doctor.staff_id
     assert consul_db.patient_id == new_queue.patient_id
-    assert consul_db.status.value == 'กำลังพบหมอ'
+    assert consul_db.status.value == "กำลังพบหมอ"
 
 
-def test_start_consultation_should_update_queue_status_to_in_progress(new_queue, new_staff_doctor, queue_service,
-                                                                      queue_repo):
+def test_start_consultation_should_update_queue_status_to_in_progress(
+    new_queue, new_staff_doctor, queue_service, queue_repo
+):
     # 1. Arrange: เตรียมทั้ง Repo ของใบตรวจ และ Repo ของคิว
     consul_repo = InMemConsulRepo()
     queue_repo.save(new_queue)  # ใส่คิวเริ่มต้นเข้าไปก่อน (สถานะ WAITING)
@@ -92,7 +104,7 @@ def test_start_consultation_should_update_queue_status_to_in_progress(new_queue,
         queue_id=new_queue.id,
         staff=new_staff_doctor,
         patient_id=new_queue.patient_id,
-        vital_signs=new_queue.vital_signs
+        vital_signs=new_queue.vital_signs,
     )
 
     # 3. Assert: ไปแอบดูที่ QueueRepo ว่าคิวโดนเปลี่ยนสถานะหรือยัง
@@ -100,8 +112,9 @@ def test_start_consultation_should_update_queue_status_to_in_progress(new_queue,
     assert updated_queue.status.value == QueueStatus.IN_PROGRESS.value
 
 
-def test_finished_consultation_should_update_queue_completed(new_examination, diagnosis, exam_service, new_staff_doctor,
-                                                             queue_service):
+def test_finished_consultation_should_update_queue_completed(
+    new_examination, diagnosis, exam_service, new_staff_doctor, queue_service
+):
     finish_consul = exam_service.finish_consultation(
         consultation_id=new_examination.id,
         queue_id=new_examination.queue_id,
@@ -124,7 +137,9 @@ def test_finished_consultation_should_update_queue_completed(new_examination, di
     assert updated_queue.status.value == QueueStatus.COMPLETED.value
 
 
-def test_finish_consultation_with_invalid_id_should_raise_error(exam_service, new_staff_doctor, diagnosis):
+def test_finish_consultation_with_invalid_id_should_raise_error(
+    exam_service, new_staff_doctor, diagnosis
+):
     # Arrange: สร้าง ID ปลอมที่ไม่มีในโลก
     random_id = uuid4()
 
@@ -134,17 +149,19 @@ def test_finish_consultation_with_invalid_id_should_raise_error(exam_service, ne
             consultation_id=random_id,
             queue_id=uuid4(),  # มั่วไปก่อน
             doctor=new_staff_doctor,
-            diagnosis=diagnosis
+            diagnosis=diagnosis,
         )
 
 
-def test_cannot_finish_consultation_twice(new_examination, diagnosis, exam_service, new_staff_doctor):
+def test_cannot_finish_consultation_twice(
+    new_examination, diagnosis, exam_service, new_staff_doctor
+):
     # 1. ครั้งแรกต้องผ่าน
     exam_service.finish_consultation(
         consultation_id=new_examination.id,
         queue_id=new_examination.queue_id,
         doctor=new_staff_doctor,
-        diagnosis=diagnosis
+        diagnosis=diagnosis,
     )
 
     # 2. ครั้งที่สองต้องระเบิด!
@@ -153,22 +170,25 @@ def test_cannot_finish_consultation_twice(new_examination, diagnosis, exam_servi
             consultation_id=new_examination.id,
             queue_id=new_examination.queue_id,
             doctor=new_staff_doctor,
-            diagnosis=diagnosis
+            diagnosis=diagnosis,
         )
 
+
 def test_finish_consultation_forget_diagnosis_should_raise_error(
-        exam_service, new_staff_doctor,new_examination):
+    exam_service, new_staff_doctor, new_examination
+):
     with raises(MissingDiagnosisError):
         exam_service.finish_consultation(
             consultation_id=new_examination.id,
             queue_id=new_examination.queue_id,
             doctor=new_staff_doctor,
-            diagnosis=None
+            diagnosis=None,
         )
 
 
 def test_finish_consultation_invalid_status_should_raise_error(
-        new_examination, diagnosis, exam_service, new_staff_doctor):
+    new_examination, diagnosis, exam_service, new_staff_doctor
+):
     # 1. Arrange: แอบไปเปลี่ยนสถานะเป็น CANCELLED ก่อน (จำลองว่าถูกยกเลิกไปแล้ว)
     new_examination.status = QueueStatus.CANCELLED
     # ต้องเซฟลง Repo ด้วยเพื่อให้ Service ไปดึงสถานะที่แก้แล้วออกมา
@@ -180,7 +200,7 @@ def test_finish_consultation_invalid_status_should_raise_error(
             consultation_id=new_examination.id,
             queue_id=new_examination.queue_id,
             doctor=new_staff_doctor,
-            diagnosis=diagnosis
+            diagnosis=diagnosis,
         )
 
     # เช็คคำด่า เอ้ย! คำอธิบาย Error นิดนึงว่าตรงไหม
@@ -188,7 +208,8 @@ def test_finish_consultation_invalid_status_should_raise_error(
 
 
 def test_finish_consultation_should_increment_version(
-        new_examination, diagnosis, exam_service, new_staff_doctor):
+    new_examination, diagnosis, exam_service, new_staff_doctor
+):
     # 1. Arrange: เช็คก่อนว่าตอนเริ่ม Version คือ 1
     assert new_examination.version.number == 1
 
@@ -197,7 +218,7 @@ def test_finish_consultation_should_increment_version(
         consultation_id=new_examination.id,
         queue_id=new_examination.queue_id,
         doctor=new_staff_doctor,
-        diagnosis=diagnosis
+        diagnosis=diagnosis,
     )
 
     # 3. Assert: เลข Version ต้องขยับเป็น 2
@@ -209,7 +230,8 @@ def test_finish_consultation_should_increment_version(
 
 
 def test_cancel_consultation_should_succeed_and_increment_version(
-        new_examination, exam_service, new_staff_doctor):
+    new_examination, exam_service, new_staff_doctor
+):
     """เทสการยกเลิกปกติ: สถานะต้องเปลี่ยน และเวอร์ชันต้องขยับ"""
     # 1. Arrange: เช็คเวอร์ชันก่อนยกเลิก
     assert new_examination.version.number == 1
@@ -218,7 +240,7 @@ def test_cancel_consultation_should_succeed_and_increment_version(
     cancelled_consul = exam_service.cancel_consultation(
         consultation_id=new_examination.id,
         queue_id=new_examination.queue_id,
-        staff=new_staff_doctor
+        staff=new_staff_doctor,
     )
 
     # 3. Assert
@@ -228,14 +250,15 @@ def test_cancel_consultation_should_succeed_and_increment_version(
 
 
 def test_cannot_cancel_already_completed_consultation(
-        new_examination, diagnosis, exam_service, new_staff_doctor):
+    new_examination, diagnosis, exam_service, new_staff_doctor
+):
     """เทสป้องกันบั๊ก: ถ้าตรวจเสร็จไปแล้ว ห้ามมากดยกเลิกทีหลัง!"""
     # 1. Arrange: หมอตรวจเสร็จไปแล้ว
     exam_service.finish_consultation(
         consultation_id=new_examination.id,
         queue_id=new_examination.queue_id,
         doctor=new_staff_doctor,
-        diagnosis=diagnosis
+        diagnosis=diagnosis,
     )
 
     # 2. Act & Assert: พยายามกดยกเลิกคิวที่จบไปแล้ว ต้องระเบิด Error
@@ -244,7 +267,7 @@ def test_cannot_cancel_already_completed_consultation(
         exam_service.cancel_consultation(
             consultation_id=new_examination.id,
             queue_id=new_examination.queue_id,
-            staff=new_staff_doctor
+            staff=new_staff_doctor,
         )
 
     # หรือ assert ข้อความ error ควบคู่ไปด้วย
@@ -252,14 +275,13 @@ def test_cannot_cancel_already_completed_consultation(
 
 
 def test_cancel_consultation_with_invalid_id_should_raise_error(
-        exam_service, new_staff_doctor):
+    exam_service, new_staff_doctor
+):
     """เทสถ้าส่ง ID มั่วๆ มายกเลิก ต้องหาไม่เจอ"""
     from uuid import uuid4
     from domain.custom_error import ConsultationNotFoundError
 
     with raises(ConsultationNotFoundError):
         exam_service.cancel_consultation(
-            consultation_id=uuid4(),
-            queue_id=uuid4(),
-            staff=new_staff_doctor
+            consultation_id=uuid4(), queue_id=uuid4(), staff=new_staff_doctor
         )

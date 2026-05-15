@@ -4,8 +4,16 @@ from pydantic import Field
 
 from domain.custom_error import DoNotChangeIDError
 from domain.entities import DomainEntity
-from domain.value_object import Name, PhoneNumber, DateOfBirth, Version, NationalID, StaffRole, \
-    Username, HashedPassword
+from domain.value_object import (
+    Name,
+    PhoneNumber,
+    DateOfBirth,
+    Version,
+    NationalID,
+    StaffRole,
+    Username,
+    HashedPassword,
+)
 
 
 class Staff(DomainEntity):
@@ -26,8 +34,8 @@ class Staff(DomainEntity):
         # รันทุกครั้งที่มีการ set ค่า field ใดๆ ใน object นี้
         # hasattr เช็คว่า field นั้นมีค่าอยู่แล้วหรือยัง
         # (ถ้ายังไม่มี = กำลังสร้างครั้งแรก → ให้ผ่าน)
-        if name in ('staff_id', 'national_id') and hasattr(self, name):
-            raise DoNotChangeIDError(f'ห้ามเปลี่ยน {name} ครับ')
+        if name in ("staff_id", "national_id") and hasattr(self, name):
+            raise DoNotChangeIDError(f"ห้ามเปลี่ยน {name} ครับ")
 
         # ถ้าไม่ใช่ field ต้องห้าม → ให้ Pydantic จัดการต่อตามปกติ
         super().__setattr__(name, value)
@@ -40,23 +48,25 @@ class Staff(DomainEntity):
         national_id_str: str,
         first_name_str: str,
         last_name_str: str,
-        dob_year: int, dob_month: int, dob_day: int,
+        dob_year: int,
+        dob_month: int,
+        dob_day: int,
         phone_number_str: str,
         role: StaffRole,
-    ) -> 'Staff':
+    ) -> "Staff":
         """
         การลงทะเบียนเจ้าหน้าที่ใหม่ ทำหน้าที่แปลง 'ข้อมูลดิบ' ให้เป็น 'Domain Object' ที่ถูกต้อง
         """
         return cls(
-                username=Username(id=username_str),
-                hashed_password=HashedPassword.create(password_str),
-                national_id=NationalID(id=national_id_str),
-                first_name=Name(value=first_name_str),
-                last_name=Name(value=last_name_str),
-                date_of_birth=DateOfBirth(year=dob_year, month=dob_month, day=dob_day),
-                phone_number=PhoneNumber(value=phone_number_str),
-                role=role,
-            )
+            username=Username(id=username_str),
+            hashed_password=HashedPassword.create(password_str),
+            national_id=NationalID(id=national_id_str),
+            first_name=Name(value=first_name_str),
+            last_name=Name(value=last_name_str),
+            date_of_birth=DateOfBirth(year=dob_year, month=dob_month, day=dob_day),
+            phone_number=PhoneNumber(value=phone_number_str),
+            role=role,
+        )
 
     def suspend(self) -> None:
         """ระงับสิทธิ์การใช้งานพนักงาน"""

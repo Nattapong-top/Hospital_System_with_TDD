@@ -1,7 +1,7 @@
 from domain.hospital_registry import HospitalRegistry
 from domain.domain_service.staff_service import StaffService
 from domain.staff_entities import Staff
-from domain.value_object import StaffRole, Username
+from domain.value_object import StaffRole
 
 
 def test_staff_repo_should_save_and_get_staff_success(new_staff_doctor):
@@ -19,6 +19,7 @@ def test_staff_repo_should_save_and_get_staff_success(new_staff_doctor):
     assert staff_db.first_name.value == new_staff_doctor.first_name.value
     assert staff_db.role.value == new_staff_doctor.role.value
 
+
 def test_staff_service_register_staff_should_return_staff():
     staff_service = HospitalRegistry.staff_service()
     new_staff = staff_service.register_staff(
@@ -27,9 +28,11 @@ def test_staff_service_register_staff_should_return_staff():
         national_id_str="1234567890123",
         first_name_str="ณัฐพงศ์",
         last_name_str="คนรักษาดี",
-        dob_year=1990, dob_month=12, dob_day=31,
+        dob_year=1990,
+        dob_month=12,
+        dob_day=31,
         phone_number_str="0999999999",
-        role=StaffRole.DOCTOR
+        role=StaffRole.DOCTOR,
     )
     assert new_staff.username.id == "nattapong-top"
     assert new_staff.first_name.value == "ณัฐพงศ์"

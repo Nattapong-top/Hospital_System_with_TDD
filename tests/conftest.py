@@ -12,13 +12,32 @@ from domain.entities import Patient, Queue
 from domain.hospital_registry import HospitalRegistry
 from domain.staff_entities import Staff
 from domain.value_object import (
-    Address, Province, MedicineInfo, Diagnosis, Rights, PatientRights, \
-    PhoneNumber, Name, DateOfBirth, NationalID, Temperature, Weight, Height,
-    BloodPressure, VitalSigns, QueueStatus, \
-    Number, Version, StaffRole)
+    Address,
+    Province,
+    MedicineInfo,
+    Diagnosis,
+    Rights,
+    PatientRights,
+    PhoneNumber,
+    Name,
+    DateOfBirth,
+    NationalID,
+    Temperature,
+    Weight,
+    Height,
+    BloodPressure,
+    VitalSigns,
+    QueueStatus,
+    Number,
+    Version,
+    StaffRole,
+)
 from infrastructure.sqlite_consultation_repository import SqlConsultationRepository
-from tests.fake_repository.fake_repository import (FakeQueueRecord,
-                                                   InMemoryStaffRepository, InMemConsulRepo)
+from tests.fake_repository.fake_repository import (
+    FakeQueueRecord,
+    InMemoryStaffRepository,
+    InMemConsulRepo,
+)
 
 
 # =====================================================================
@@ -83,6 +102,7 @@ def InMem_staff_repo():
 def InMem_consul_repo():
     return InMemConsulRepo()
 
+
 @fixture
 def consul_repo():
     return SqlConsultationRepository(HospitalRegistry.set_test_db())
@@ -118,24 +138,26 @@ def staff_service():
 @fixture
 def registered_address() -> Address:
     return Address(
-        house_number='10',
-        street='วิวิธสุรการ',
-        sub_district='มุกดาหาร',
-        district='เมือง',
+        house_number="10",
+        street="วิวิธสุรการ",
+        sub_district="มุกดาหาร",
+        district="เมือง",
         province=Province.MUKDAHAN,
-        postal_code='49000'
+        postal_code="49000",
     )
 
 
 @fixture
 def current_address() -> Address:
-    return Address(  # ตั้งอยู่ที่ 173 ถนนดินสอ แขวงเสาชิงช้า เขตพระนคร กรุงเทพมหานคร 10200
-        house_number='173',
-        street='ดินสอ',
-        sub_district='เสาชิงช้า',
-        district='พระนคร',
-        province=Province.BANGKOK,
-        postal_code='10200'
+    return (
+        Address(  # ตั้งอยู่ที่ 173 ถนนดินสอ แขวงเสาชิงช้า เขตพระนคร กรุงเทพมหานคร 10200
+            house_number="173",
+            street="ดินสอ",
+            sub_district="เสาชิงช้า",
+            district="พระนคร",
+            province=Province.BANGKOK,
+            postal_code="10200",
+        )
     )
 
 
@@ -146,8 +168,7 @@ def today_date() -> date:
 
 @fixture
 def now() -> datetime:
-    return datetime(2026, 3, 28,
-                    22, 43, 53, 302903)
+    return datetime(2026, 3, 28, 22, 43, 53, 302903)
 
 
 @fixture
@@ -157,20 +178,22 @@ def vital_signs():
         weight=Weight(value=80),
         height=Height(value=177),
         temperature=Temperature(value=39.0),
-        symptom='น้ำหมูกไหล ปวดหัว ตัวร้อน หนาวสั่น'
+        symptom="น้ำหมูกไหล ปวดหัว ตัวร้อน หนาวสั่น",
     )
 
 
 @fixture
 def diagnosis(patient):
     return Diagnosis(
-        disease='ไข้หวัดใหญ่',
-        treatment='พักผ่อนน ดิ่มน้ำมากๆ',
-        medicine_prescribed=[MedicineInfo(
-            name='Paracetamol',
-            strength='500mg',
-            frequency='วันละ 3 ครั้ง หลักอาหาร'
-        )]
+        disease="ไข้หวัดใหญ่",
+        treatment="พักผ่อนน ดิ่มน้ำมากๆ",
+        medicine_prescribed=[
+            MedicineInfo(
+                name="Paracetamol",
+                strength="500mg",
+                frequency="วันละ 3 ครั้ง หลักอาหาร",
+            )
+        ],
     )
 
 
@@ -181,15 +204,15 @@ def diagnosis(patient):
 def patient(current_address, registered_address):
     return Patient(
         id=uuid.uuid4(),
-        national_id=NationalID(id='1234567890123'),
-        first_name=Name(value='นนทพัฒน์'),
-        last_name=Name(value='คนสุขภาพดี'),
-        phone_number=PhoneNumber(value='0123456789'),
+        national_id=NationalID(id="1234567890123"),
+        first_name=Name(value="นนทพัฒน์"),
+        last_name=Name(value="คนสุขภาพดี"),
+        phone_number=PhoneNumber(value="0123456789"),
         date_of_birth=DateOfBirth(year=1990, month=12, day=31),
         registered_address=registered_address,
         current_address=current_address,
         rights=Rights(rights_type=PatientRights.SOCIAL_SECURITY),
-        version=Version(number=1)
+        version=Version(number=1),
     )
 
 
@@ -210,21 +233,21 @@ def queue(patient, today_date, vital_signs):
         queue_date=today_date,
         vital_signs=vital_signs,
         status=QueueStatus.WAITING,
-        version=Version(number=1)
+        version=Version(number=1),
     )
 
 
 @fixture
 def new_patient(registrar, vital_signs, registered_address, current_address):
     return registrar.register_new_patient(
-        national_id=NationalID(id='1234567890123'),
-        first_name=Name(value='นนทพัฒน์'),
-        last_name=Name(value='คนสุขภาพดี'),
-        phone_number=PhoneNumber(value='0123456789'),
+        national_id=NationalID(id="1234567890123"),
+        first_name=Name(value="นนทพัฒน์"),
+        last_name=Name(value="คนสุขภาพดี"),
+        phone_number=PhoneNumber(value="0123456789"),
         date_of_birth=DateOfBirth(year=1990, month=12, day=31),
         registered_address=registered_address,
         current_address=current_address,
-        rights=Rights(rights_type=PatientRights.SOCIAL_SECURITY)
+        rights=Rights(rights_type=PatientRights.SOCIAL_SECURITY),
     )
 
 
@@ -236,9 +259,11 @@ def new_staff_doctor():
         national_id_str="1234567890123",
         first_name_str="ณัฐพงศ์",
         last_name_str="คนรักษาดี",
-        dob_year=1990, dob_month=12, dob_day=31,
+        dob_year=1990,
+        dob_month=12,
+        dob_day=31,
         phone_number_str="0999999999",
-        role=StaffRole.DOCTOR
+        role=StaffRole.DOCTOR,
     )
 
 
@@ -250,9 +275,11 @@ def new_staff_nurse():
         national_id_str="1234567890123",
         first_name_str="นนทนัน",
         last_name_str="พยาบาลดี",
-        dob_year=1998, dob_month=1, dob_day=31,
+        dob_year=1998,
+        dob_month=1,
+        dob_day=31,
         phone_number_str="0888888888",
-        role=StaffRole.NURSE
+        role=StaffRole.NURSE,
     )
 
 
@@ -264,9 +291,11 @@ def new_staff_admin():
         national_id_str="1234567894444",
         first_name_str="admin",
         last_name_str="can't start",
-        dob_year=1998, dob_month=1, dob_day=31,
+        dob_year=1998,
+        dob_month=1,
+        dob_day=31,
         phone_number_str="0999888888",
-        role=StaffRole.ADMIN
+        role=StaffRole.ADMIN,
     )
 
 
@@ -288,9 +317,11 @@ def new_register_staff(staff_service):
         national_id_str="1234567890123",
         first_name_str="ณัฐพงศ์",
         last_name_str="คนรักษาดี",
-        dob_year=1990, dob_month=12, dob_day=31,
+        dob_year=1990,
+        dob_month=12,
+        dob_day=31,
         phone_number_str="0999999999",
-        role=StaffRole.DOCTOR
+        role=StaffRole.DOCTOR,
     )
     return new_staff
 
@@ -326,37 +357,47 @@ def valid_patient_payload():
         "first_name": "นนทพัฒน์",
         "last_name": "ใจดี",
         "phone_number": "0812345678",
-        "dob_year": 1990, "dob_month": 5, "dob_day": 20,
+        "dob_year": 1990,
+        "dob_month": 5,
+        "dob_day": 20,
         "registered_address": {
-            "house_number": "1/1", "street": "ราชดำเนิน",
-            "sub_district": "บวรนิเวศ", "district": "พระนคร",
-            "province": "กรุงเทพมหานคร", "postal_code": "10200"
+            "house_number": "1/1",
+            "street": "ราชดำเนิน",
+            "sub_district": "บวรนิเวศ",
+            "district": "พระนคร",
+            "province": "กรุงเทพมหานคร",
+            "postal_code": "10200",
         },
         "current_address": {
-            "house_number": "99/9", "street": "สุขุมวิท",
-            "sub_district": "คลองเตย", "district": "คลองเตย",
-            "province": "กรุงเทพมหานคร", "postal_code": "10110"
+            "house_number": "99/9",
+            "street": "สุขุมวิท",
+            "sub_district": "คลองเตย",
+            "district": "คลองเตย",
+            "province": "กรุงเทพมหานคร",
+            "postal_code": "10110",
         },
-        "rights_type": "ประกันสังคม"
+        "rights_type": "ประกันสังคม",
     }
 
 
 @fixture
 def api_new_queues(client, valid_patient_payload):
-    reg_res = client.post('/api/patients/register', json=valid_patient_payload)
-    new_patient_id = reg_res.json()['id']
+    reg_res = client.post("/api/patients/register", json=valid_patient_payload)
+    new_patient_id = reg_res.json()["id"]
 
     triage_payload = {
         "patient_id": new_patient_id,
         "vitals": {
-            "systolic": 120, "diastolic": 80,
-            "weight": 70.5, "height": 175.0,
+            "systolic": 120,
+            "diastolic": 80,
+            "weight": 70.5,
+            "height": 175.0,
             "temperature": 36.5,
-            "symptom": "ปวดหัว ตัวร้อน"
-        }
+            "symptom": "ปวดหัว ตัวร้อน",
+        },
     }
     # ออกคิว ส่ง ข้อมูลสัญญาชีพและซักประวัติ
-    new_queue = client.post('/api/triage', json=triage_payload)
+    new_queue = client.post("/api/triage", json=triage_payload)
     return new_queue
 
 
@@ -366,11 +407,7 @@ def diagnosis_payload(diagnosis):
         "disease": "ไข้หวัดใหญ่ สายพันธุ์ A",
         "treatment": "พักผ่อนเยอะๆ และทานยาตามอาการ",
         "medicine_prescribed": [
-            {
-                "name": "Tamiflu",
-                "strength": "75mg",
-                "frequency": "เช้า-เย็น หลังอาหาร"
-            }
-        ]
+            {"name": "Tamiflu", "strength": "75mg", "frequency": "เช้า-เย็น หลังอาหาร"}
+        ],
     }
     return diagnosis_payload
