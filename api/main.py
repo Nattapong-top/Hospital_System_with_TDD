@@ -5,7 +5,8 @@ from datetime import date
 from typing import Optional
 from uuid import UUID
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, Request, HTTPException
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel, ValidationError, Field
 
 from domain.custom_error import (
@@ -14,6 +15,7 @@ from domain.custom_error import (
     QueueNotFoundError,
     MissingDiagnosisError,
     InvalidCancelRequestError,
+    DomainError,
 )
 from domain.domain_service.patient_registrar import PatientRegistrar
 from domain.entities import Patient
@@ -120,6 +122,25 @@ class RegisterStaffRequest(BaseModel):
     dob_day: int
     phone_number: str
     role: str
+
+
+# =====================================================================
+# 🔮 วุ้นแปลภาษาครอบจักรวาล (Global Exception Handler)
+# =====================================================================
+
+
+@app.exception_handler(DomainError)
+async def domain_error_handler(request: Request, exc: DomainError):
+    """
+    เมื่อไหร่ที่ Service พ่น Error อะไรก็ตามที่สืบทอดมาจาก DomainError
+    ให้ตอบกลับเป็น 400 Bad Request พร้อมข้อความที่ป๋าตั้งไว้!
+    """
+    return JSONResponse(
+        status_code=400,
+        content={
+            "detail": exc.message
+        },  # ดึงข้อความภาษาไทยสวยๆ จาก custom_error.py มาโชว์เลย!
+    )
 
 
 @app.get("/")
