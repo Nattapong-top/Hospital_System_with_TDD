@@ -123,20 +123,25 @@ class RegisterStaffRequest(BaseModel):
     phone_number: str
     role: str
 
+
 # =====================================================================
 # 🔮 วุ้นแปลภาษาครอบจักรวาล (Global Exception Handler)
 # =====================================================================
 
+
 @app.exception_handler(DomainError)
 async def domain_error_handler(request: Request, exc: DomainError):
     """
-    เมื่อไหร่ที่ Service พ่น Error อะไรก็ตามที่สืบทอดมาจาก DomainError 
+    เมื่อไหร่ที่ Service พ่น Error อะไรก็ตามที่สืบทอดมาจาก DomainError
     ให้ตอบกลับเป็น 400 Bad Request พร้อมข้อความที่ป๋าตั้งไว้!
     """
     return JSONResponse(
         status_code=400,
-        content={"detail": exc.message}  # ดึงข้อความภาษาไทยสวยๆ จาก custom_error.py มาโชว์เลย!
+        content={
+            "detail": exc.message
+        },  # ดึงข้อความภาษาไทยสวยๆ จาก custom_error.py มาโชว์เลย!
     )
+
 
 @app.get("/")
 def health_check():

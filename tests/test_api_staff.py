@@ -35,6 +35,7 @@ def test_api_register_new_staff_should_success(client):
     assert data["first_name"] == payload["first_name"]
     assert data["is_active"] is True  # พนักงานใหม่ต้องพร้อมทำงานทันที
 
+
 def test_api_register_staff_duplicate_username_should_return_400(client):
     """เทส Unhappy Path: สมัครพนักงานด้วย Username ที่มีคนใช้ไปแล้ว ระบบต้องด่ากลับมา"""
 
