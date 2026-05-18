@@ -1,8 +1,9 @@
 from typing import Optional
 from uuid import UUID
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ValidationError
 
+from domain.custom_error import MissingDiagnosisError
 from domain.domain_service.patient_registrar import PatientRegistrar
 from domain.entities import Patient
 from domain.value_object import (
@@ -19,6 +20,8 @@ from domain.value_object import (
     Weight,
     Height,
     Temperature,
+    Diagnosis,
+    MedicineInfo,
 )
 
 
@@ -121,3 +124,22 @@ def _to_vital_signs_vo(request: TriageRequest) -> VitalSigns:
         symptom=request.vitals.symptom,
     )
     return vitals
+
+
+def _prepare_diagnostic_vo(diagnosis_payload: dict) -> Diagnosis:
+    # 🚩 เช็คเบื้องต้นก่อนส่งให้ Pydantic
+    if not diagnosis_payload or not diagnosis_payload.get("disease"):
+        raise MissingDiagnosisError()
+
+    try:
+        meds_data = diagnosis_payload.get("medicine_prescribed", [])
+        meds = [MedicineInfo(**m) for m in meds_data]
+
+        return Diagnosis(
+            disease=diagnosis_payload.get("disease"),
+            treatment=diagnosis_payload.get("treatment"),
+            medicine_prescribed=meds,
+        )
+    except (ValidationError, TypeError, ValueError) as e:
+        # พ่นเป็น Domain Error ออกไปแทน
+        raise MissingDiagnosisError(f"ข้อมูลวินิจฉัยไม่ถูกต้อง: {str(e)}")
