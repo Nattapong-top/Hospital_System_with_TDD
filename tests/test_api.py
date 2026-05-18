@@ -70,7 +70,7 @@ def test_api_new_queue_should_return_success_when_have_patient_id_and_vital_sign
         },
     }
     # ออกคิว ส่ง ข้อมูลสัญญาชีพและซักประวัติ
-    response = client.post("/api/triage", json=triage_payload)
+    response = client.post("/api/queues/triage", json=triage_payload)
 
     # ... ก่อน assert status_code ...
     if response.status_code == 422:
@@ -92,7 +92,7 @@ def test_api_triage_should_fail_when_no_vital_sign(client, valid_patient_payload
     print(data)
     payload = {"patient_id": data["id"], "vitals": None}
 
-    response = client.post("/api/triage", json=payload)
+    response = client.post("/api/queues/triage", json=payload)
     assert response.status_code == 400
     assert "ลืมส่งสัญญาณชีพมานะ ออกคิวไม่ได้ครับ" in response.json()["detail"]
 
@@ -102,7 +102,7 @@ def test_api_get_all_queues_today_should_return_list_all_queues_today(
 ):
     q = api_new_queues
     assert q.status_code == 200
-    response = client.get("/api/nurse/queues/today")
+    response = client.get("/api/queues/today")
 
     assert response.status_code == 200
     data = response.json()
