@@ -5,42 +5,32 @@ from datetime import date
 from typing import Optional
 from uuid import UUID
 
-from fastapi import FastAPI, Request, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, ValidationError
 
+from api.routers import staff, patient
 from domain.custom_error import (
-    VitalSignsMissingError,
-    InvalidStatusTransitionError,
-    QueueNotFoundError,
-    MissingDiagnosisError,
-    InvalidCancelRequestError,
     DomainError,
+    InvalidCancelRequestError,
+    InvalidStatusTransitionError,
+    MissingDiagnosisError,
+    QueueNotFoundError,
+    VitalSignsMissingError,
 )
-from domain.domain_service.patient_registrar import PatientRegistrar
-from domain.entities import Patient
-from api.routers import staff
 
 # ฝัง GPS ให้ Python
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from domain.hospital_registry import HospitalRegistry
 from domain.value_object import (
-    NationalID,
-    Name,
-    PhoneNumber,
-    DateOfBirth,
-    Address,
-    Province,
-    Rights,
-    PatientRights,
-    VitalSigns,
     BloodPressure,
-    Weight,
-    Height,
-    Temperature,
-    MedicineInfo,
     Diagnosis,
+    Height,
+    MedicineInfo,
+    Temperature,
+    VitalSigns,
+    Weight,
 )
 
 
@@ -56,30 +46,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="Hospital Queue API - Paa Top IT", lifespan=lifespan)
 app.include_router(staff.router)
-
-
-# --- จุดบริการ (Endpoints) ---
-class AddressSchema(BaseModel):
-    house_number: str
-    street: str
-    sub_district: str
-    district: str
-    province: Province
-    postal_code: str
-
-
-# --- ข้อมูลรับเข้า (Request Schema) ---
-class RegisterRequest(BaseModel):
-    national_id: str
-    first_name: str
-    last_name: str
-    phone_number: str
-    dob_year: int
-    dob_month: int
-    dob_day: int
-    registered_address: AddressSchema
-    current_address: AddressSchema
-    rights_type: PatientRights
+app.include_router(patient.patient_router)
 
 
 # --- ข้อมูลสัญญาณชีพ (Schema) ---
@@ -96,19 +63,6 @@ class VitalSignsSchema(BaseModel):
 class TriageRequest(BaseModel):
     patient_id: UUID  # ต้องส่ง ID ของคนไข้ที่ได้จากตอนลงทะเบียนมาด้วย
     vitals: Optional[VitalSignsSchema] = None
-
-
-# 1. สร้างฟังก์ชันแปลงโฉม (Mapper)
-# ให้มันรับ AddressSchema (ก้อนเล็ก) แล้วคืนค่าเป็น Address VO
-def _to_address_vo(addr_schema: AddressSchema) -> Address:
-    return Address(
-        house_number=addr_schema.house_number,
-        street=addr_schema.street,
-        sub_district=addr_schema.sub_district,
-        district=addr_schema.district,
-        province=addr_schema.province,
-        postal_code=addr_schema.postal_code,
-    )
 
 
 # =====================================================================
@@ -166,38 +120,6 @@ def get_queue_status(queue_id: UUID) -> dict:
         "status": queue.status.value,
         "queue_number": queue.queue_number.id,
     }
-
-
-@app.post("/api/patients/register")
-def register_patient(request: RegisterRequest) -> dict:
-    # 🚩 จุดที่ 2: ใช้ Try-Except เพื่อดักจับ Error จาก Domain (เช่น ID ซ้ำ)
-    try:
-        registrar = HospitalRegistry.patient_registrar()
-
-        # 🚩 แกะที่อยู่ที่ 1: ตามทะเบียนบ้าน
-        registered_addr = _to_address_vo(request.registered_address)
-
-        # 🚩 แกะที่อยู่ที่ 2: ที่อยู่ปัจจุบัน
-        current_addr = _to_address_vo(request.current_address)
-
-        registered_patient = _registrar_patient_detail(
-            current_addr, registered_addr, registrar, request
-        )
-
-        return {
-            "message": "ลงทะเบียนสำเร็จ!",
-            "id": str(registered_patient.id),
-            "national_id": str(registered_patient.national_id.id),
-            "first_name": str(registered_patient.first_name.value),
-        }
-
-    except ValueError as e:
-        # ถ้า National ID ซ้ำ หรือข้อมูลผิดกฎ Domain มันจะเด้งมาที่นี่
-        raise HTTPException(status_code=400, detail=str(e))
-    except Exception as e:
-        # 🚩 แก้บรรทัดนี้ชั่วคราวเพื่อให้เห็นว่ามันด่าอะไร
-        print(f"❌ ป๋าครับ มันระเบิดเพราะ: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.post("/api/triage")
@@ -313,27 +235,6 @@ def _to_vital_signs_vo(request: TriageRequest) -> VitalSigns:
         symptom=request.vitals.symptom,
     )
     return vitals
-
-
-def _registrar_patient_detail(
-    current_addr: Address,
-    registered_addr: Address,
-    registrar: PatientRegistrar,
-    request: RegisterRequest,
-) -> Patient:
-    registered_patient = registrar.register_new_patient(
-        national_id=NationalID(id=request.national_id),
-        first_name=Name(value=request.first_name),
-        last_name=Name(value=request.last_name),
-        phone_number=PhoneNumber(value=request.phone_number),
-        date_of_birth=DateOfBirth(
-            year=request.dob_year, month=request.dob_month, day=request.dob_day
-        ),
-        registered_address=registered_addr,
-        current_address=current_addr,
-        rights=Rights(rights_type=request.rights_type),
-    )
-    return registered_patient
 
 
 def _prepare_diagnostic_vo(diagnosis_payload: dict) -> Diagnosis:

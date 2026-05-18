@@ -1,5 +1,28 @@
 from pydantic import BaseModel, Field
 
+from domain.domain_service.patient_registrar import PatientRegistrar
+from domain.entities import Patient
+from domain.value_object import (
+    PatientRights,
+    Province,
+    Address,
+    NationalID,
+    Name,
+    PhoneNumber,
+    DateOfBirth,
+    Rights,
+)
+
+
+# --- จุดบริการ (Endpoints) ---
+class AddressSchema(BaseModel):
+    house_number: str
+    street: str
+    sub_district: str
+    district: str
+    province: Province
+    postal_code: str
+
 
 # --- Pydantic Schemas สำหรับระบบพนักงาน ---
 class RegisterStaffRequest(BaseModel):
@@ -13,3 +36,51 @@ class RegisterStaffRequest(BaseModel):
     dob_day: int
     phone_number: str
     role: str
+
+
+# --- ข้อมูลรับเข้า (Request Schema) ---
+class RegisterRequest(BaseModel):
+    national_id: str
+    first_name: str
+    last_name: str
+    phone_number: str
+    dob_year: int
+    dob_month: int
+    dob_day: int
+    registered_address: AddressSchema
+    current_address: AddressSchema
+    rights_type: PatientRights
+
+
+# 1. สร้างฟังก์ชันแปลงโฉม (Mapper)
+# ให้มันรับ AddressSchema (ก้อนเล็ก) แล้วคืนค่าเป็น Address VO
+def to_address_vo(addr_schema: AddressSchema) -> Address:
+    return Address(
+        house_number=addr_schema.house_number,
+        street=addr_schema.street,
+        sub_district=addr_schema.sub_district,
+        district=addr_schema.district,
+        province=addr_schema.province,
+        postal_code=addr_schema.postal_code,
+    )
+
+
+def registrar_patient_detail(
+    current_addr: Address,
+    registered_addr: Address,
+    registrar: PatientRegistrar,
+    request: RegisterRequest,
+) -> Patient:
+    registered_patient = registrar.register_new_patient(
+        national_id=NationalID(id=request.national_id),
+        first_name=Name(value=request.first_name),
+        last_name=Name(value=request.last_name),
+        phone_number=PhoneNumber(value=request.phone_number),
+        date_of_birth=DateOfBirth(
+            year=request.dob_year, month=request.dob_month, day=request.dob_day
+        ),
+        registered_address=registered_addr,
+        current_address=current_addr,
+        rights=Rights(rights_type=request.rights_type),
+    )
+    return registered_patient
