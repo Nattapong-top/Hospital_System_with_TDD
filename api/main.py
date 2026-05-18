@@ -7,7 +7,7 @@ from uuid import UUID
 
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel, ValidationError, Field
+from pydantic import BaseModel, ValidationError
 
 from domain.custom_error import (
     VitalSignsMissingError,
@@ -19,6 +19,7 @@ from domain.custom_error import (
 )
 from domain.domain_service.patient_registrar import PatientRegistrar
 from domain.entities import Patient
+from api.routers import staff
 
 # ฝัง GPS ให้ Python
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -40,7 +41,6 @@ from domain.value_object import (
     Temperature,
     MedicineInfo,
     Diagnosis,
-    StaffRole,
 )
 
 
@@ -55,6 +55,7 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="Hospital Queue API - Paa Top IT", lifespan=lifespan)
+app.include_router(staff.router)
 
 
 # --- จุดบริการ (Endpoints) ---
@@ -110,25 +111,9 @@ def _to_address_vo(addr_schema: AddressSchema) -> Address:
     )
 
 
-# --- Pydantic Schemas สำหรับระบบพนักงาน ---
-class RegisterStaffRequest(BaseModel):
-    username: str = Field(..., min_length=4, description="ชื่อผู้ใช้งาน")
-    password: str = Field(..., min_length=6, description="รหัสผ่าน")
-    national_id: str = Field(..., min_length=13, max_length=13)  # บังคับ 13 หลัก
-    first_name: str
-    last_name: str
-    dob_year: int
-    dob_month: int
-    dob_day: int
-    phone_number: str
-    role: str
-
-
 # =====================================================================
 # 🔮 วุ้นแปลภาษาครอบจักรวาล (Global Exception Handler)
 # =====================================================================
-
-
 @app.exception_handler(DomainError)
 async def domain_error_handler(request: Request, exc: DomainError):
     """
@@ -315,45 +300,6 @@ def cancel_visit(queue_id: UUID):
         # ⚠️ ตัวนี้จะดักเฉพาะเรื่องที่เราคาดไม่ถึงจริงๆ (เช่น DB ล่ม)
         print(f"Unexpected Error: {str(e)}")
         raise HTTPException(status_code=500, detail="ระบบขัดข้องชั่วคราว")
-
-
-@app.post("/api/staff/register")
-def register_staff(request: RegisterStaffRequest):
-    """API สำหรับสมัครพนักงานใหม่ (หมอ/พยาบาล)"""
-
-    staff_service = HospitalRegistry.staff_service()
-
-    # 2. แปลง String ให้เป็น Enum ของระบบเรา
-    try:
-        staff_role = StaffRole[
-            request.role.upper()
-        ]  # แปลง "nurse" เป็น StaffRole.NURSE
-    except ValueError:
-        raise HTTPException(status_code=400, detail="กรุณากรอก role ให้ถูกต้อง")
-        # 3. โยนข้อมูล "ดิบ" ให้ Service ไปประกอบร่างเป็น Entity และเซฟลง DB
-
-    new_staff = staff_service.register_staff(
-        username_str=request.username,
-        password_str=request.password,  # 🚩 โยนรหัสผ่านดิบไป เดี๋ยว Service จัดการ Hash เอง
-        national_id_str=request.national_id,
-        first_name_str=request.first_name,
-        last_name_str=request.last_name,
-        dob_year=request.dob_year,
-        dob_month=request.dob_month,
-        dob_day=request.dob_day,
-        phone_number_str=request.phone_number,
-        role=staff_role,
-    )
-
-    # 4. ส่งผลลัพธ์กลับไปให้หน้าเว็บ
-    return {
-        "staff_id": new_staff.staff_id,
-        "username": new_staff.username.id,
-        "first_name": new_staff.first_name.value,
-        "last_name": new_staff.last_name.value,
-        "role": new_staff.role.value,
-        "is_active": new_staff.is_active,
-    }
 
 
 def _to_vital_signs_vo(request: TriageRequest) -> VitalSigns:
