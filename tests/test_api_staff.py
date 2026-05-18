@@ -9,7 +9,7 @@ def test_api_register_new_staff_should_success(client):
     # 1. ARRANGE: เตรียมแบบฟอร์ม JSON ที่หน้าเว็บ (หรือ Admin) จะกรอกส่งมาให้
     payload = {
         "username": "nurse_joy_api",
-        "password": "securepassword123",
+        "password": "secure-password123",
         "national_id": "1112223334445",
         "first_name": "จอย",
         "last_name": "ใจดี",
