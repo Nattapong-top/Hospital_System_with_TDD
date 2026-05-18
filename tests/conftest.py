@@ -397,7 +397,7 @@ def api_new_queues(client, valid_patient_payload):
         },
     }
     # ออกคิว ส่ง ข้อมูลสัญญาชีพและซักประวัติ
-    new_queue = client.post("/api/triage", json=triage_payload)
+    new_queue = client.post("/api/queues/triage", json=triage_payload)
     return new_queue
 
 

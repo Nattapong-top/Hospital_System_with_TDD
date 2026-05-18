@@ -1,3 +1,6 @@
+from typing import Optional
+from uuid import UUID
+
 from pydantic import BaseModel, Field
 
 from domain.domain_service.patient_registrar import PatientRegistrar
@@ -11,6 +14,11 @@ from domain.value_object import (
     PhoneNumber,
     DateOfBirth,
     Rights,
+    VitalSigns,
+    BloodPressure,
+    Weight,
+    Height,
+    Temperature,
 )
 
 
@@ -52,6 +60,22 @@ class RegisterRequest(BaseModel):
     rights_type: PatientRights
 
 
+# --- ข้อมูลสัญญาณชีพ (Schema) ---
+class VitalSignsSchema(BaseModel):
+    systolic: int
+    diastolic: int
+    weight: float
+    height: float
+    temperature: float
+    symptom: str
+
+
+# --- ข้อมูลรับเข้าสำหรับการออกคิว ---
+class TriageRequest(BaseModel):
+    patient_id: UUID  # ต้องส่ง ID ของคนไข้ที่ได้จากตอนลงทะเบียนมาด้วย
+    vitals: Optional[VitalSignsSchema] = None
+
+
 # 1. สร้างฟังก์ชันแปลงโฉม (Mapper)
 # ให้มันรับ AddressSchema (ก้อนเล็ก) แล้วคืนค่าเป็น Address VO
 def to_address_vo(addr_schema: AddressSchema) -> Address:
@@ -84,3 +108,16 @@ def registrar_patient_detail(
         rights=Rights(rights_type=request.rights_type),
     )
     return registered_patient
+
+
+def _to_vital_signs_vo(request: TriageRequest) -> VitalSigns:
+    vitals = VitalSigns(
+        blood_pressure=BloodPressure(
+            systolic=request.vitals.systolic, diastolic=request.vitals.diastolic
+        ),
+        weight=Weight(value=request.vitals.weight),
+        height=Height(value=request.vitals.height),
+        temperature=Temperature(value=request.vitals.temperature),
+        symptom=request.vitals.symptom,
+    )
+    return vitals
