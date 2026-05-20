@@ -50,7 +50,7 @@ def test_doctor_complete_visit_should_change_status_to_COMPLETE(
     updated_queue = queue_service.change_status_to_examining(queue_id=active_queue.id)
     assert updated_queue.status == QueueStatus.IN_PROGRESS
 
-    completed_queue = queue_service.complete_visit(updated_queue.id, diagnosis)
+    completed_queue = queue_service.change_status_complete(updated_queue.id)
     assert completed_queue.status == QueueStatus.COMPLETED
     assert completed_queue.version.number == 3
 
@@ -116,7 +116,7 @@ def test_doctor_cannot_cancel_visit_should_raise_error_when_status_COMPLETE(
     updated_queue = queue_service.change_status_to_examining(queue_id=active_queue.id)
     assert updated_queue.status == QueueStatus.IN_PROGRESS
 
-    completed_queue = queue_service.complete_visit(updated_queue.id, diagnosis)
+    completed_queue = queue_service.change_status_complete(updated_queue.id)
     assert completed_queue.status == QueueStatus.COMPLETED
     assert completed_queue.version.number == 3
 

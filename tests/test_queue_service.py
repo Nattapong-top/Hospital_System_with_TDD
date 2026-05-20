@@ -101,12 +101,10 @@ def test_queue_service_should_complete_visit_when_is_valid(
     assert new_queue.status == QueueStatus.WAITING
     update_queue = queue_service.change_status_to_examining(queue_id=new_queue.id)
     assert update_queue.status == QueueStatus.IN_PROGRESS
-    update_queue = queue_service.complete_visit(
-        queue_id=new_queue.id, diagnosis=diagnosis
-    )
+    update_queue = queue_service.change_status_complete(update_queue.id)
 
     assert update_queue.status == QueueStatus.COMPLETED
-    assert update_queue.diagnosis == diagnosis
+    # assert update_queue.diagnosis == diagnosis
     assert update_queue.patient_id == patient.id
     assert update_queue.version == Version(number=3)
 
@@ -117,8 +115,9 @@ def test_queue_service_should_complete_visit_when_is_valid(
 def test_queue_service_should_raise_error_when_complete_visit_patient_id_invalid(
     queue_service, diagnosis
 ):
+    invalid_id = uuid.uuid4()
     with raises(QueueNotFoundError) as excinfo:
-        queue_service.complete_visit(queue_id=uuid.uuid4(), diagnosis=diagnosis)
+        queue_service.change_status_complete(invalid_id)
     assert "ไม่พบคิว" in str(excinfo.value)
 
 
@@ -129,7 +128,7 @@ def test_queue_service_should_raise_error_when_complete_visit_status_witting(
 ):
     assert new_queue.status == QueueStatus.WAITING
     with raises(InvalidStatusTransitionError) as excinfo:
-        queue_service.complete_visit(queue_id=new_queue.id, diagnosis=diagnosis)
+        queue_service.change_status_complete(new_queue.id)
     assert "ไม่สามารถจบการตรวจได้" in str(excinfo.value)
 
 
@@ -165,6 +164,6 @@ def test_queue_service_should_raise_error_when_cancel_visit_whit_status_complete
 ):
     with raises(InvalidCancelRequestError) as excinfo:
         queue_service.change_status_to_examining(queue_id=new_queue.id)
-        queue_service.complete_visit(queue_id=new_queue.id, diagnosis=diagnosis)
+        queue_service.change_status_complete(new_queue.id)
         queue_service.cancel_visit(queue_id=new_queue.id)
     assert "ไม่สามารถยกเลิกการตรวจได้" in str(excinfo.value)

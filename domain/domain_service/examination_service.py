@@ -82,7 +82,7 @@ class ExaminationService:
 
     def _update_state_queue_to_complete(self, queue_id) -> None:
         if self.queue_service:
-            self.queue_service.complete_visit(queue_id)
+            self.queue_service.change_status_complete(queue_id)
 
     def _update_state_queue_to_cancel(self, queue_id) -> None:
         if self.queue_service:

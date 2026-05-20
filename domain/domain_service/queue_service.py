@@ -10,7 +10,7 @@ from domain.custom_error import (
 )
 from domain.entities import Queue
 from domain.interfaces import QueueRecord
-from domain.value_object import Number, VitalSigns, QueueStatus, Diagnosis
+from domain.value_object import Number, VitalSigns, QueueStatus
 
 
 class QueueService:
@@ -35,9 +35,9 @@ class QueueService:
         self.queue_repo.update(queue)
         return queue
 
-    def complete_visit(self, queue_id: UUID, diagnosis: Diagnosis = None) -> Queue:
+    def change_status_complete(self, queue_id: UUID) -> Queue:
         queue = self._get_queue_or_raise(queue_id=queue_id)
-        queue.complete_visit(diagnosis)
+        queue.status_complete()
         self.queue_repo.update(queue)
         return queue
 

@@ -119,10 +119,9 @@ class Queue(DomainEntity):
         self.status = QueueStatus.IN_PROGRESS
         self.version = self.version.increment()
 
-    def complete_visit(self, diagnosis: Diagnosis) -> None:
+    def status_complete(self) -> None:
         self._validate_in_progress_status()
         self.status = QueueStatus.COMPLETED
-        self.diagnosis = diagnosis
         self.version = self.version.increment()
 
     def cancel_visit(self) -> None:

@@ -2,7 +2,6 @@ from uuid import UUID
 
 from fastapi import APIRouter, HTTPException
 
-from api.schema import _prepare_diagnostic_vo
 from domain.custom_error import (
     InvalidStatusTransitionError,
     QueueNotFoundError,
@@ -34,12 +33,12 @@ def start_consultation(queue_id: UUID) -> dict:
 
 
 @consultation_router.post("/{queue_id}/complete")
-def complete_visit(queue_id: UUID, diagnosis_payload: dict):
+def complete_visit(queue_id: UUID):
     try:
         queue_service = HospitalRegistry.queue_service()
         # 🚩 ถ้าข้างล่างนี้พ่น MissingDiagnosisError มันจะวิ่งไปหา except 400 ทันที
-        diagnosis_vo = _prepare_diagnostic_vo(diagnosis_payload)
-        updated_queue = queue_service.complete_visit(queue_id, diagnosis_vo)
+        # diagnosis_vo = _prepare_diagnostic_vo(diagnosis_payload)
+        updated_queue = queue_service.change_status_complete(queue_id)
 
         return {
             "message": "บันทึกผลการตรวจเรียบร้อย",

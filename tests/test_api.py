@@ -150,9 +150,7 @@ def test_api_queue_complete_visit_successfully(
     q_start = client.post(f"/api/consultations/{queue_id}/start")
 
     assert q_start.status_code == 200
-    q_complete = client.post(
-        f"/api/consultations/{queue_id}/complete", json=diagnosis_payload
-    )
+    q_complete = client.post(f"/api/consultations/{queue_id}/complete")
 
     assert q_complete.status_code == 200
     data = q_complete.json()
@@ -162,15 +160,16 @@ def test_api_queue_complete_visit_successfully(
     assert data["message"] == "บันทึกผลการตรวจเรียบร้อย"
 
 
-def test_api_queue_complete_visit_whit_none_diagnosis_should_raise_missing_diagnosis_error_return_400(
-    client, api_new_queues, diagnosis_payload
-):
-    queue_id = api_new_queues.json()["queue_id"]
-    client.post(f"/api/consultations/{queue_id}/start")
-    q_complete = client.post(f"/api/consultations/{queue_id}/complete", json={})
-    assert q_complete.status_code == 400
-    data = q_complete.json()
-    assert "กรุณากรอกข้อมูลการวินิจฉัยโรคด้วยครับ" in data["detail"]
+# ยกเลิก logic
+# def test_api_queue_complete_visit_whit_none_diagnosis_should_raise_missing_diagnosis_error_return_400(
+#     client, api_new_queues, diagnosis_payload
+# ):
+#     queue_id = api_new_queues.json()["queue_id"]
+#     client.post(f"/api/consultations/{queue_id}/start")
+#     q_complete = client.post(f"/api/consultations/{queue_id}/complete", json={})
+#     assert q_complete.status_code == 400
+#     data = q_complete.json()
+#     assert "กรุณากรอกข้อมูลการวินิจฉัยโรคด้วยครับ" in data["detail"]
 
 
 def test_api_queue_cancel_visit_whit_status_waiting_should_successfully(
