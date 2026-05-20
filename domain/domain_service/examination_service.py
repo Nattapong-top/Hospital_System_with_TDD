@@ -75,7 +75,7 @@ class ExaminationService:
 
     def _update_state_queue_to_in_progress(self, queue_id: UUID) -> None:
         if self.queue_service:
-            self.queue_service.start_consultation(queue_id)
+            self.queue_service.change_status_to_examining(queue_id)
 
     def get_by_consultation_id(self, consultation_id: UUID) -> Optional[Consultation]:
         return self.consultation_repo.get_by_consultation_id(consultation_id)

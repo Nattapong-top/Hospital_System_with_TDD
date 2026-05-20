@@ -18,7 +18,7 @@ consultation_router = APIRouter(prefix="/api/consultations", tags=["consultation
 def start_consultation(queue_id: UUID) -> dict:
     try:
         queue_service = HospitalRegistry.queue_service()
-        updated_queue = queue_service.start_consultation(queue_id)
+        updated_queue = queue_service.change_status_to_examining(queue_id)
 
         return {
             "message": "เริ่มการตรวจสำเร็จ",

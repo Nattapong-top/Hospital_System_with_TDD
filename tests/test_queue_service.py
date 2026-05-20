@@ -78,7 +78,7 @@ def test_should_start_consultation_successfully(
         today=today_date,
         vital_signs=vital_signs,
     )
-    updated_queue = queue_service.start_consultation(queue_id=new_queue.id)
+    updated_queue = queue_service.change_status_to_examining(queue_id=new_queue.id)
     assert updated_queue.id == new_queue.id
     assert updated_queue.queue_date == new_queue.queue_date
     assert updated_queue.status == QueueStatus.IN_PROGRESS
@@ -91,7 +91,7 @@ def test_should_start_consultation_successfully(
 def test_should_start_consultation_with_invalid_id_raises_error(queue_service):
     invalid_id = uuid.uuid4()
     with raises(QueueNotFoundError) as excinfo:
-        queue_service.start_consultation(queue_id=invalid_id)
+        queue_service.change_status_to_examining(queue_id=invalid_id)
     assert "ไม่พบคิว" in str(excinfo.value)
 
 
@@ -99,7 +99,7 @@ def test_queue_service_should_complete_visit_when_is_valid(
     new_queue, diagnosis, patient, queue_service, queue_repo
 ):
     assert new_queue.status == QueueStatus.WAITING
-    update_queue = queue_service.start_consultation(queue_id=new_queue.id)
+    update_queue = queue_service.change_status_to_examining(queue_id=new_queue.id)
     assert update_queue.status == QueueStatus.IN_PROGRESS
     update_queue = queue_service.complete_visit(
         queue_id=new_queue.id, diagnosis=diagnosis
@@ -149,7 +149,7 @@ def test_queue_service_should_cancel_visit_when_status_witting(
 def test_queue_service_should_cancel_visit_when_status_in_progress(
     new_queue, queue_service, queue_repo
 ):
-    update_queue = queue_service.start_consultation(queue_id=new_queue.id)
+    update_queue = queue_service.change_status_to_examining(queue_id=new_queue.id)
     assert update_queue.status == QueueStatus.IN_PROGRESS
     assert update_queue.version == Version(number=2)
 
@@ -164,7 +164,7 @@ def test_queue_service_should_raise_error_when_cancel_visit_whit_status_complete
     new_queue, queue_service, queue_repo, diagnosis
 ):
     with raises(InvalidCancelRequestError) as excinfo:
-        queue_service.start_consultation(queue_id=new_queue.id)
+        queue_service.change_status_to_examining(queue_id=new_queue.id)
         queue_service.complete_visit(queue_id=new_queue.id, diagnosis=diagnosis)
         queue_service.cancel_visit(queue_id=new_queue.id)
     assert "ไม่สามารถยกเลิกการตรวจได้" in str(excinfo.value)

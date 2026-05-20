@@ -208,7 +208,7 @@ def test_Queue_with_Version_should_next_version_when_is_valid(patient, queue):
     assert queue.version == Version(number=1)
     assert queue.patient_id == patient.id
 
-    queue.start_consultation()
+    queue.status_in_progress()
     assert queue.status == QueueStatus.IN_PROGRESS
     assert queue.version == Version(number=2)
 
@@ -217,7 +217,7 @@ def test_should_update_queue_entity_is_valid(queue):
     assert queue.status == QueueStatus.WAITING
     assert queue.version == Version(number=1)
 
-    queue.start_consultation()
+    queue.status_in_progress()
     assert queue.status == QueueStatus.IN_PROGRESS
     assert queue.version == Version(number=2)
 
@@ -225,7 +225,7 @@ def test_should_update_queue_entity_is_valid(queue):
 def test_should_raise_error_when_start_consultation_but_status_is_not_waiting(queue):
     queue.status = QueueStatus.COMPLETED
     with raises(InvalidStatusTransitionError, match="ไม่สามารถเริ่มตรวจได้"):
-        queue.start_consultation()
+        queue.status_in_progress()
 
 
 def test_should_change_status_from_in_progress_to_completed(queue, diagnosis):
@@ -245,7 +245,7 @@ def test_should_change_status_from_in_progress_to_completed(queue, diagnosis):
 def test_should_raise_error_when_IN_PROGRESS_but_status_is_WAITTING(queue):
     queue.status = QueueStatus.IN_PROGRESS
     with raises(InvalidStatusTransitionError):
-        queue.start_consultation()
+        queue.status_in_progress()
 
 
 def test_should_raise_error_when_complete_visit_but_status_is_WAITTING(

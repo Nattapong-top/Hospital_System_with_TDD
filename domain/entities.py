@@ -114,7 +114,7 @@ class Queue(DomainEntity):
     diagnosis: Optional[Diagnosis] = None
     version: Version = Field(default=Version(number=1))
 
-    def start_consultation(self) -> None:
+    def status_in_progress(self) -> None:
         self._validate_status()
         self.status = QueueStatus.IN_PROGRESS
         self.version = self.version.increment()
