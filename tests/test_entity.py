@@ -230,9 +230,9 @@ def test_should_raise_error_when_start_consultation_but_status_is_not_waiting(qu
 
 def test_should_change_status_from_in_progress_to_completed(queue, diagnosis):
     queue.status = QueueStatus.IN_PROGRESS
-    queue.complete_visit(diagnosis=diagnosis)
+    queue.status_complete()
     assert queue.status == QueueStatus.COMPLETED
-    assert queue.diagnosis == diagnosis
+    # assert queue.diagnosis == diagnosis # ปรับ logic ไม่รับผลตรวจแล้ว
 
 
 # *** ยกเลิกการตรวจรับผลวินัจฉัยจาก queue
@@ -253,7 +253,7 @@ def test_should_raise_error_when_complete_visit_but_status_is_WAITTING(
 ):
     assert queue.status == QueueStatus.WAITING
     with raises(InvalidStatusTransitionError):
-        queue.complete_visit(diagnosis=diagnosis)
+        queue.status_complete()
 
 
 def test_should_change_status_to_cancelled(queue):
