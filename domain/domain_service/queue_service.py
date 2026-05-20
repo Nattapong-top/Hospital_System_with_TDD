@@ -18,7 +18,7 @@ class QueueService:
         self.queue_repo = queue_repo
 
     def issue_new_queue(
-        self, patient_id: UUID, today: date, vital_signs: Optional[VitalSigns]
+        self, patient_id: UUID, today: date, vital_signs: VitalSigns
     ) -> Queue:
         self._ensure_no_duplicate_queue_and_no_vital_signs(
             patient_id, today, vital_signs
@@ -29,9 +29,9 @@ class QueueService:
         self.queue_repo.save(new_queue)
         return new_queue
 
-    def start_consultation(self, queue_id: UUID) -> Queue:
+    def change_status_to_examining(self, queue_id: UUID) -> Queue:
         queue = self._get_queue_or_raise(queue_id)
-        queue.start_consultation()
+        queue.status_in_progress()
         self.queue_repo.update(queue)
         return queue
 

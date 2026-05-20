@@ -20,7 +20,7 @@ def test_doctor_starts_consultation_should_change_status_to_IN_PROGRESS(
 
     # --- 2. ลงมือทำ (Act) ---
     # หมอกดปุ่มเรียกคิวเข้าห้องตรวจ
-    updated_queue = queue_service.start_consultation(active_queue.id)
+    updated_queue = queue_service.change_status_to_examining(active_queue.id)
     assert updated_queue.status == QueueStatus.IN_PROGRESS
 
     # 🚩 พิสูจน์ความชัวร์: ไปแอบเปิดตู้เหล็กดูอีกรอบ ว่าในฐานข้อมูลมันเปลี่ยนจริงๆ ไหม!
@@ -47,7 +47,7 @@ def test_doctor_complete_visit_should_change_status_to_COMPLETE(
 
     # --- 2. ลงมือทำ (Act) ---
     # หมอกดปุ่มเรียกคิวเข้าห้องตรวจ
-    updated_queue = queue_service.start_consultation(queue_id=active_queue.id)
+    updated_queue = queue_service.change_status_to_examining(queue_id=active_queue.id)
     assert updated_queue.status == QueueStatus.IN_PROGRESS
 
     completed_queue = queue_service.complete_visit(updated_queue.id, diagnosis)
@@ -86,7 +86,7 @@ def test_doctor_cancel_visit_should_change_status_to_CANCELLED_when_status_IN_PR
     assert active_queue.status == QueueStatus.WAITING
     assert active_queue.version.number == 1
 
-    in_progress_queue = queue_service.start_consultation(active_queue.id)
+    in_progress_queue = queue_service.change_status_to_examining(active_queue.id)
     db_active = queue_service.get_active_queue_by_patient(
         in_progress_queue.patient_id, today_date
     )
@@ -113,7 +113,7 @@ def test_doctor_cannot_cancel_visit_should_raise_error_when_status_COMPLETE(
 
     # --- 2. ลงมือทำ (Act) ---
     # หมอกดปุ่มเรียกคิวเข้าห้องตรวจ
-    updated_queue = queue_service.start_consultation(queue_id=active_queue.id)
+    updated_queue = queue_service.change_status_to_examining(queue_id=active_queue.id)
     assert updated_queue.status == QueueStatus.IN_PROGRESS
 
     completed_queue = queue_service.complete_visit(updated_queue.id, diagnosis)
