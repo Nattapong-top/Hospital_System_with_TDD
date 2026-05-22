@@ -66,6 +66,7 @@ def record_triage(request: TriageRequest) -> dict:
     return {
         "message": "ซักประวัติสำเร็จ และออกคิวเรียบร้อย",
         "queue_id": str(new_queue.id),
+        "patient_id": str(new_queue.patient_id),
         "queue_date": str(new_queue.queue_date.isoformat()),
         "queue_number": str(new_queue.queue_number.id),
         "status": str(new_queue.status.value),
