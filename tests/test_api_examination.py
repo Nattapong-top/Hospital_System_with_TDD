@@ -1,3 +1,24 @@
+import pytest
+from core.config import settings
+from domain.hospital_registry import HospitalRegistry
+
+
+@pytest.fixture(autouse=True)
+def force_enable_new_examination_flow(monkeypatch):
+    """ฟิกเจอร์บังคับเปิดสวิตช์ตัวใหม่ และล้างตู้แช่ขยะ เพื่อไม่ให้ระบบเก่ามาปนครับป๋า"""
+    # 1. บังคับสับรางให้เป็น True เสมอเฉพาะในไฟล์เทสนี้
+    monkeypatch.setattr(settings, "ENABLE_NEW_EXAMINATION_FLOW", True)
+
+    # 2. สั่งล้างตู้จำลอง (Cache) ของเก่าทิ้งไปซะ ไม่งั้นมันจะจำเอา QueueService ของเทสข้อก่อนหน้ามาใช้
+    HospitalRegistry.hard_reset()
+    HospitalRegistry.init_database()
+
+    yield
+
+    # 3. พอเทสไฟล์นี้เสร็จ สั่งล้างไพ่เคลียร์ทางให้เทสข้อถัดไปรันต่อได้สบายใจ
+    HospitalRegistry.hard_reset()
+
+
 def test_api_examination_should_start_consultation_and_update_state_in_progress(
     client, api_new_queues, api_staff_doctor, api_vitals
 ):
