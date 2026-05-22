@@ -381,24 +381,20 @@ def valid_patient_payload():
 
 
 @fixture
-def api_new_queues(client, valid_patient_payload):
-    reg_res = client.post("/api/patients/register", json=valid_patient_payload)
-    new_patient_id = reg_res.json()["id"]
-
-    triage_payload = {
-        "patient_id": new_patient_id,
-        "vitals": {
-            "systolic": 120,
-            "diastolic": 80,
-            "weight": 70.5,
-            "height": 175.0,
-            "temperature": 36.5,
-            "symptom": "ปวดหัว ตัวร้อน",
-        },
+def payload_staff_doctor():
+    payload_staff_doctor = {
+        "username": "doctor_strange",  # 🚩 เล็งชื่อนี้ไว้
+        "password": "password123",
+        "national_id": "9998887776665",
+        "first_name": "สตีเฟน",
+        "last_name": "สเตรนจ์",
+        "dob_year": 1980,
+        "dob_month": 1,
+        "dob_day": 1,
+        "phone_number": "0800000000",
+        "role": "DOCTOR",
     }
-    # ออกคิว ส่ง ข้อมูลสัญญาชีพและซักประวัติ
-    new_queue = client.post("/api/queues/triage", json=triage_payload)
-    return new_queue
+    return payload_staff_doctor
 
 
 @fixture
@@ -411,3 +407,52 @@ def diagnosis_payload(diagnosis):
         ],
     }
     return diagnosis_payload
+
+
+@fixture
+def triage_payload(api_patient_id):
+    triage_payload = {
+        "patient_id": api_patient_id,
+        "vitals": {
+            "systolic": 120,
+            "diastolic": 80,
+            "weight": 70.5,
+            "height": 175.0,
+            "temperature": 36.5,
+            "symptom": "ปวดหัว ตัวร้อน",
+        },
+    }
+    return triage_payload
+
+
+@fixture
+def api_vitals():
+    return {
+        "systolic": 120,
+        "diastolic": 80,
+        "weight": 70.5,
+        "height": 175.0,
+        "temperature": 36.5,
+        "symptom": "ปวดหัว ตัวร้อน",
+    }
+
+
+@fixture
+def api_new_queues(client, api_patient_id, triage_payload):
+    # ออกคิว ส่ง ข้อมูลสัญญาชีพและซักประวัติ
+    new_queue = client.post("/api/queues/triage", json=triage_payload)
+    return new_queue
+
+
+@fixture
+def api_patient_id(client, valid_patient_payload):
+    reg_res = client.post("/api/patients/register", json=valid_patient_payload)
+    new_patient_id = reg_res.json()["id"]
+    return new_patient_id
+
+
+@fixture
+def api_staff_doctor(client, payload_staff_doctor):
+    # สมัครคนแรกเข้าทำงาน (ผ่านฉลุย)
+    staff_doctor = client.post("/api/staff/register", json=payload_staff_doctor)
+    return staff_doctor

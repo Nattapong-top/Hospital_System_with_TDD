@@ -22,6 +22,7 @@ from domain.value_object import (
     Temperature,
     Diagnosis,
     MedicineInfo,
+    QueueStatus,
 )
 
 
@@ -79,6 +80,23 @@ class TriageRequest(BaseModel):
     vitals: Optional[VitalSignsSchema] = None
 
 
+# --- ข้อมูลรับเข้าสำหรับเข้าพบหมอ ---
+class ExamRequestSchema(BaseModel):
+    queue_id: UUID
+    staff_id: UUID
+    patient_id: UUID
+    vital_signs: VitalSignsSchema
+
+
+# --- ส่งคืนให้ API หลังพบหมอ ---
+class ExamResponseSchema(BaseModel):
+    consultation_id: UUID
+    queue_id: UUID
+    patient_id: UUID
+    doctor_id: UUID
+    status: QueueStatus
+
+
 # 1. สร้างฟังก์ชันแปลงโฉม (Mapper)
 # ให้มันรับ AddressSchema (ก้อนเล็ก) แล้วคืนค่าเป็น Address VO
 def to_address_vo(addr_schema: AddressSchema) -> Address:
@@ -124,6 +142,18 @@ def _to_vital_signs_vo(request: TriageRequest) -> VitalSigns:
         symptom=request.vitals.symptom,
     )
     return vitals
+
+
+def exam_to_vital_signs_vo(vital_signs: VitalSignsSchema) -> VitalSigns:
+    return VitalSigns(
+        blood_pressure=BloodPressure(
+            systolic=vital_signs.systolic, diastolic=vital_signs.diastolic
+        ),
+        weight=Weight(value=vital_signs.weight),
+        height=Height(value=vital_signs.height),
+        temperature=Temperature(value=vital_signs.temperature),
+        symptom=vital_signs.symptom,
+    )
 
 
 def _prepare_diagnostic_vo(diagnosis_payload: dict) -> Diagnosis:

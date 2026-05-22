@@ -75,6 +75,10 @@ class DuplicateUsernameError(DomainError):
     default_message = "Username นี้มีผู้ใช้งานแล้วในระบบ"
 
 
+class StaffNotFoundError(DomainError):
+    default_message = "ไม่พบรหัสพนักงาน"
+
+
 # =====================================================================
 # Patient & Generic Errors (ทั่วไปและคนไข้)
 # =====================================================================

@@ -2,7 +2,11 @@ from typing import Optional
 from uuid import UUID
 
 from domain.consultation_entities import Consultation
-from domain.custom_error import PermissionDeniedError, ConsultationNotFoundError
+from domain.custom_error import (
+    PermissionDeniedError,
+    ConsultationNotFoundError,
+    StaffNotFoundError,
+)
 from domain.domain_service.queue_service import QueueService
 from domain.interfaces import ConsultationRepository
 from domain.staff_entities import Staff
@@ -19,6 +23,9 @@ class ExaminationService:
     def start_consultation(
         self, queue_id: UUID, staff: Staff, patient_id: UUID, vital_signs: VitalSigns
     ) -> Consultation:
+
+        if staff is None:
+            raise StaffNotFoundError()
 
         self._check_role_nurse_or_doctor(staff)
         self._update_state_queue_to_in_progress(queue_id)

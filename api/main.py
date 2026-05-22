@@ -5,7 +5,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
-from api.routers import consultation, patient, queues, staff
+from api.routers import consultation, patient, queues, staff, examination
 from domain.custom_error import (
     DomainError,
 )
@@ -31,6 +31,7 @@ app.include_router(staff.router)
 app.include_router(patient.patient_router)
 app.include_router(queues.queues_router)
 app.include_router(consultation.consultation_router)
+app.include_router(examination.examination_router)
 
 
 # =====================================================================
