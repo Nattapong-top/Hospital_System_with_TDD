@@ -8,7 +8,7 @@ from fastapi.responses import JSONResponse
 from api.routers import consultation, patient, queues, staff, examination
 from domain.custom_error import (
     DomainError,
-    NotFoundError,
+    StaffNotFoundError,
 )
 
 # ฝัง GPS ให้ Python
@@ -52,8 +52,8 @@ async def domain_error_handler(request: Request, exc: DomainError):
     )
 
 
-@app.exception_handler(NotFoundError)
-async def generic_not_found_error(request: Request, exc: NotFoundError):
+@app.exception_handler(StaffNotFoundError)
+async def staff_not_found_error_handler(request: Request, exc: StaffNotFoundError):
 
     return JSONResponse(
         status_code=404,
