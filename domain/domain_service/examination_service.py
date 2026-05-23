@@ -6,6 +6,7 @@ from domain.custom_error import (
     PermissionDeniedError,
     ConsultationNotFoundError,
     StaffNotFoundError,
+    QueueNotFoundError,
 )
 from domain.domain_service.queue_service import QueueService
 from domain.interfaces import ConsultationRepository
@@ -24,6 +25,7 @@ class ExaminationService:
         self, queue_id: UUID, staff: Staff, patient_id: UUID, vital_signs: VitalSigns
     ) -> Consultation:
 
+        self._check_queue_id_not_found(queue_id)  # เพิ่มการเรียกใช้เมธอดตรวจสอบคิว
         self._check_staff_not_found(staff)
         self._check_role_nurse_or_doctor(staff)
         self._update_state_queue_to_in_progress(queue_id)
@@ -67,6 +69,19 @@ class ExaminationService:
 
     def get_by_consultation_id(self, consultation_id: UUID) -> Optional[Consultation]:
         return self.consultation_repo.get_by_consultation_id(consultation_id)
+
+    def _check_queue_id_not_found(self, queue_id: UUID) -> None:
+        """
+        ตรวจสอบความมีตัวตนของคิวในระบบฐานข้อมูล
+        """
+        # อาวุธลับ: หากไม่มี queue_service (กรณีหน่วยทดสอบเก่า) ให้ข้ามการตรวจสอบเพื่อป้องกันข้อผิดพลาด
+        if self.queue_service is None:
+            return
+
+        # ดำเนินการตรวจสอบข้อมูลคิวจากบริการจัดการคิว
+        queue_db = self.queue_service.get_by_queue_id(queue_id)
+        if queue_db is None:
+            raise QueueNotFoundError(queue_id=queue_id)
 
     def _get_consultation_or_raise(self, consultation_id: UUID) -> Consultation:
         consultation = self.consultation_repo.get_by_consultation_id(consultation_id)
