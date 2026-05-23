@@ -216,3 +216,8 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# ละเว้นโฟลเดอร์และไฟล์ฐานข้อมูลทั้งหมดในระบบ
+database/
+*.db
+*.sqlite3
