@@ -1,4 +1,7 @@
+import uuid
+
 import pytest
+
 from core.config import settings
 from domain.hospital_registry import HospitalRegistry
 
@@ -10,13 +13,13 @@ def force_enable_new_examination_flow(monkeypatch):
     monkeypatch.setattr(settings, "ENABLE_NEW_EXAMINATION_FLOW", True)
 
     # 2. สั่งล้างตู้จำลอง (Cache) ของเก่าทิ้งไปซะ ไม่งั้นมันจะจำเอา QueueService ของเทสข้อก่อนหน้ามาใช้
-    HospitalRegistry.hard_reset()
+    HospitalRegistry.reset()
     HospitalRegistry.init_database()
 
     yield
 
     # 3. พอเทสไฟล์นี้เสร็จ สั่งล้างไพ่เคลียร์ทางให้เทสข้อถัดไปรันต่อได้สบายใจ
-    HospitalRegistry.hard_reset()
+    HospitalRegistry.reset()
 
 
 def test_api_examination_should_start_consultation_and_update_state_in_progress(
@@ -43,19 +46,39 @@ def test_api_examination_should_start_consultation_and_update_state_in_progress(
     assert exam_data["consultation_id"] is not None
 
 
-# def test_api_examination_when_not_found_staff_id_should_raise_error(client, api_new_queues, api_vitals):
-#
-#     staff_id = str(uuid.uuid4())
-#     queue_data = api_new_queues.json()
-#
-#     not_found_staff_id = {
-#         'queue_id': queue_data['queue_id'],
+def test_api_examination_when_not_found_staff_id_should_raise_error(
+    client, api_new_queues, api_vitals
+):
+
+    staff_id = str(uuid.uuid4())
+    queue_data = api_new_queues.json()
+
+    not_found_staff_id = {
+        "queue_id": queue_data["queue_id"],
+        "staff_id": staff_id,
+        "patient_id": queue_data["patient_id"],
+        "vital_signs": api_vitals,
+    }
+
+    not_found = client.post("/api/examination/start", json=not_found_staff_id)
+
+    print("\n[Exception Handler Response]:", not_found.json())
+
+    assert not_found.status_code == 404
+    assert "ไม่พบรหัสพนักงาน" == not_found.json()["detail"]
+
+
+# def test_api_exam_when_not_found_queue_id_should_raise_error(client, api_staff_doctor, api_vitals):
+#     staff_id = api_staff_doctor.json()["staff_id"]
+#     queue_id = str(uuid.uuid4())
+#     queue_id_payload = {
+#         "queue_id": queue_id,
 #         'staff_id': staff_id,
-#         'patient_id': queue_data["patient_id"],
-#         'vital_signs': api_vitals
+#         "patient_id": queue_id,
+#         "vital_signs": api_vitals
+#
 #     }
-#
-#     not_found = client.post("/api/examination/start", json=not_found_staff_id)
-#
-#     assert not_found.status_code == 400
-#     assert 'ไม่พบรหัสพนักงาน' == not_found.json()['detail']
+#     not_found_queue_id = client.post('/api/examination/start', json=queue_id_payload)
+#     print("\n[Exception Handler Response]:", not_found_queue_id.json())
+#     assert not_found_queue_id.status_code == 404
+#     assert 'ไม่พบคิว' == not_found_queue_id.json()['detail']
