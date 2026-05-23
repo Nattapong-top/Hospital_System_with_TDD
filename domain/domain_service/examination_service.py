@@ -24,9 +24,7 @@ class ExaminationService:
         self, queue_id: UUID, staff: Staff, patient_id: UUID, vital_signs: VitalSigns
     ) -> Consultation:
 
-        if staff is None:
-            raise StaffNotFoundError()
-
+        self._check_staff_not_found(staff)
         self._check_role_nurse_or_doctor(staff)
         self._update_state_queue_to_in_progress(queue_id)
 
@@ -43,7 +41,7 @@ class ExaminationService:
     def finish_consultation(
         self, consultation_id: UUID, queue_id: UUID, doctor: Staff, diagnosis: Diagnosis
     ) -> Consultation:
-
+        self._check_staff_not_found(doctor)
         self._check_role_only_staff_doctor(doctor)
         consultation = self._get_consultation_or_raise(consultation_id)
         self._update_state_queue_to_complete(queue_id)
@@ -57,6 +55,7 @@ class ExaminationService:
         self, consultation_id: UUID, queue_id: UUID, staff: Staff
     ) -> Consultation:
 
+        self._check_staff_not_found(staff)
         self._check_role_nurse_or_doctor(staff)
         consultation = self._get_consultation_or_raise(consultation_id)
 
@@ -66,11 +65,18 @@ class ExaminationService:
         self.consultation_repo.update(consultation)
         return consultation
 
+    def get_by_consultation_id(self, consultation_id: UUID) -> Optional[Consultation]:
+        return self.consultation_repo.get_by_consultation_id(consultation_id)
+
     def _get_consultation_or_raise(self, consultation_id: UUID) -> Consultation:
         consultation = self.consultation_repo.get_by_consultation_id(consultation_id)
         if consultation is None:
             raise ConsultationNotFoundError(consultation_id)
         return consultation
+
+    def _check_staff_not_found(self, staff: Staff):
+        if staff is None:
+            raise StaffNotFoundError()
 
     def _check_role_nurse_or_doctor(self, staff: Staff) -> None:
         if staff.role not in [StaffRole.NURSE, StaffRole.DOCTOR]:
@@ -83,9 +89,6 @@ class ExaminationService:
     def _update_state_queue_to_in_progress(self, queue_id: UUID) -> None:
         if self.queue_service:
             self.queue_service.change_status_to_examining(queue_id)
-
-    def get_by_consultation_id(self, consultation_id: UUID) -> Optional[Consultation]:
-        return self.consultation_repo.get_by_consultation_id(consultation_id)
 
     def _update_state_queue_to_complete(self, queue_id) -> None:
         if self.queue_service:
