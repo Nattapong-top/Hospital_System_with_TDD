@@ -18,23 +18,10 @@ class DomainError(Exception):
         super().__init__(self.message)
 
 
-class NotFoundError(Exception):
-    """
-    Base class สำหรับ ไม่พบข้อมูล ในระบบ ทั้งหมดใน Domain Layer
-    คลาสลูกสามารถตั้ง default_message ได้เลย หรือจะส่ง message ใหม่ตอนเรียกใช้ก็ได้
-    """
-
-    default_message = "ไม่พบข้อมูลในระบบ"
-
-    def __init__(self, message: Optional[str] = None):
-        self.message = message or self.default_message
-        super().__init__(self.message)
-
-
 # =====================================================================
 # Queue Errors (เกี่ยวกับคิว)
 # =====================================================================
-class QueueNotFoundError(NotFoundError):
+class QueueNotFoundError(DomainError):
     def __init__(
         self, queue_id: Optional[Union[str, UUID]] = None, message: Optional[str] = None
     ):
@@ -54,7 +41,7 @@ class VitalSignsMissingError(DomainError):
 # =====================================================================
 # Consultation / Examination Errors (เกี่ยวกับการตรวจรักษา)
 # =====================================================================
-class ConsultationNotFoundError(NotFoundError):
+class ConsultationNotFoundError(DomainError):
     def __init__(
         self,
         consultation_id: Optional[Union[str, UUID]] = None,
@@ -88,7 +75,7 @@ class DuplicateUsernameError(DomainError):
     default_message = "Username นี้มีผู้ใช้งานแล้วในระบบ"
 
 
-class StaffNotFoundError(NotFoundError):
+class StaffNotFoundError(DomainError):
     default_message = "ไม่พบรหัสพนักงาน"
 
 
