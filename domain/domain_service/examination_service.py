@@ -42,12 +42,13 @@ class ExaminationService:
         return new_consultation
 
     def finish_consultation(
-        self, consultation_id: UUID, queue_id: UUID, doctor: Staff, diagnosis: Diagnosis
+        self, consultation_id: UUID, doctor: Staff, diagnosis: Diagnosis
     ) -> Consultation:
+
+        consultation = self._get_consultation_or_raise(consultation_id)
         self._check_staff_not_found(doctor)
         self._check_role_only_staff_doctor(doctor)
-        consultation = self._get_consultation_or_raise(consultation_id)
-        self._update_state_queue_to_complete(queue_id)
+        self._update_state_queue_to_complete(consultation.queue_id)
 
         consultation.complete_examination(diagnosis)
         self.consultation_repo.update(consultation)

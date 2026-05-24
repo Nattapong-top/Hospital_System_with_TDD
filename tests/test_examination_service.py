@@ -100,7 +100,6 @@ def test_finished_consultation_should_update_queue_completed(
 ):
     finish_consul = exam_service.finish_consultation(
         consultation_id=new_examination.id,
-        queue_id=new_examination.queue_id,
         doctor=new_staff_doctor,
         diagnosis=diagnosis,
     )
@@ -130,7 +129,7 @@ def test_finish_consultation_with_invalid_id_should_raise_error(
     with raises(ConsultationNotFoundError):
         exam_service.finish_consultation(
             consultation_id=random_id,
-            queue_id=uuid4(),  # มั่วไปก่อน
+            # มั่วไปก่อน
             doctor=new_staff_doctor,
             diagnosis=diagnosis,
         )
@@ -142,7 +141,6 @@ def test_cannot_finish_consultation_twice(
     # 1. ครั้งแรกต้องผ่าน
     exam_service.finish_consultation(
         consultation_id=new_examination.id,
-        queue_id=new_examination.queue_id,
         doctor=new_staff_doctor,
         diagnosis=diagnosis,
     )
@@ -151,7 +149,6 @@ def test_cannot_finish_consultation_twice(
     with raises(InvalidStatusTransitionError):
         exam_service.finish_consultation(
             consultation_id=new_examination.id,
-            queue_id=new_examination.queue_id,
             doctor=new_staff_doctor,
             diagnosis=diagnosis,
         )
@@ -163,7 +160,6 @@ def test_finish_consultation_forget_diagnosis_should_raise_error(
     with raises(MissingDiagnosisError):
         exam_service.finish_consultation(
             consultation_id=new_examination.id,
-            queue_id=new_examination.queue_id,
             doctor=new_staff_doctor,
             diagnosis=None,
         )
@@ -184,7 +180,6 @@ def test_finish_consultation_invalid_status_should_raise_error(
     with raises(InvalidStatusTransitionError) as exc:
         exam_service.finish_consultation(
             consultation_id=cancel_consul.id,
-            queue_id=cancel_consul.queue_id,
             doctor=new_staff_doctor,
             diagnosis=diagnosis,
         )
@@ -202,7 +197,6 @@ def test_finish_consultation_should_increment_version(
     # 2. Act: สั่งจบการตรวจ
     finished_consul = exam_service.finish_consultation(
         consultation_id=new_examination.id,
-        queue_id=new_examination.queue_id,
         doctor=new_staff_doctor,
         diagnosis=diagnosis,
     )
@@ -242,7 +236,6 @@ def test_cannot_cancel_already_completed_consultation(
     # 1. Arrange: หมอตรวจเสร็จไปแล้ว
     exam_service.finish_consultation(
         consultation_id=new_examination.id,
-        queue_id=new_examination.queue_id,
         doctor=new_staff_doctor,
         diagnosis=diagnosis,
     )
