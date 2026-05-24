@@ -119,11 +119,19 @@ class HospitalRegistry:
         return cls._staff_service
 
     @classmethod
-    def consultation_service(cls) -> QueueService | ExaminationService:
-        """จุดสลับร่างระบบตรวจรักษา (Branch by Abstraction)"""
-        if settings.ENABLE_NEW_EXAMINATION_FLOW:
-            return cls._set_switch_to_new_exam_service()
-        return cls.queue_service()
+    def consultation_service(cls) -> ExaminationService:
+        """เบิกตัวระบบตรวจรักษา (ใช้งานตัวใหม่ถาวร)"""
+        if cls._examination_service is None:
+            from domain.domain_service.examination_service import ExaminationService
+            from infrastructure.sqlite_consultation_repository import (
+                SqlConsultationRepository,
+            )
+
+            repo = SqlConsultationRepository(db_path=cls.get_db_path())
+            cls._examination_service = ExaminationService(
+                consul_repo=repo, queue_service=cls.queue_service()
+            )
+        return cls._examination_service
 
     @classmethod
     def patient_repo(cls) -> SqlPatientRepository:

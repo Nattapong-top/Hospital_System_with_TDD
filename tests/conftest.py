@@ -124,7 +124,7 @@ def queue_service():
 
 @fixture
 def exam_service() -> ExaminationService:
-    exam_service = HospitalRegistry._set_switch_to_new_exam_service()
+    exam_service = HospitalRegistry.consultation_service()
     return exam_service
 
 
