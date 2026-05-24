@@ -7,6 +7,7 @@ from pytest import fixture
 
 from api.main import app
 from domain.consultation_entities import Consultation
+from domain.domain_service.examination_service import ExaminationService
 from domain.entities import Patient, Queue
 from domain.hospital_registry import HospitalRegistry
 from domain.staff_entities import Staff
@@ -122,8 +123,8 @@ def queue_service():
 
 
 @fixture
-def exam_service():
-    exam_service = HospitalRegistry.consultation_service()
+def exam_service() -> ExaminationService:
+    exam_service = HospitalRegistry._set_switch_to_new_exam_service()
     return exam_service
 
 
