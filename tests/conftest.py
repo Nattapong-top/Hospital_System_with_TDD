@@ -302,10 +302,7 @@ def new_staff_admin():
 @fixture
 def new_examination(InMem_consul_repo, new_queue, new_staff_doctor, exam_service):
     return exam_service.start_consultation(
-        queue_id=new_queue.id,
-        staff=new_staff_doctor,
-        patient_id=new_queue.patient_id,
-        vital_signs=new_queue.vital_signs,
+        queue_id=new_queue.id, staff=new_staff_doctor
     )
 
 

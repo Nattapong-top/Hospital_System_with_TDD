@@ -84,8 +84,8 @@ class TriageRequest(BaseModel):
 class ExamRequestSchema(BaseModel):
     queue_id: UUID
     staff_id: UUID
-    patient_id: UUID
-    vital_signs: VitalSignsSchema
+    # patient_id: UUID
+    # vital_signs: VitalSignsSchema
 
 
 # --- ส่งคืนให้ API หลังพบหมอ ---
