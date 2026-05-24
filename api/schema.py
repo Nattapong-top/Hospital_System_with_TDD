@@ -1,7 +1,8 @@
+from datetime import datetime
 from typing import Optional
 from uuid import UUID
 
-from pydantic import BaseModel, Field, ValidationError
+from pydantic import BaseModel, Field, ValidationError, ConfigDict
 
 from domain.custom_error import MissingDiagnosisError
 from domain.domain_service.patient_registrar import PatientRegistrar
@@ -97,7 +98,54 @@ class ExamResponseSchema(BaseModel):
     status: QueueStatus
 
 
+class MedicineInfoSchema(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    name: str
+    strength: str
+    frequency: str
+
+
+class DiagnosisSchema(BaseModel):
+    disease: str
+    treatment: str
+    medicine_prescribed: list[MedicineInfoSchema]
+
+
+class FinishRequestSchema(BaseModel):
+    consultation_id: UUID
+    doctor_id: UUID
+    diagnosis: DiagnosisSchema
+
+
+class ExamFinishResponseSchema(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    consultation_id: UUID
+    queue_id: UUID
+    patient_id: UUID
+    doctor_id: UUID
+    disease: str
+    treatment: str
+    medicines: list[MedicineInfoSchema]
+    finished_at: datetime
+
+
 # 1. สร้างฟังก์ชันแปลงโฉม (Mapper)
+
+
+def to_diagnosis_vo(diagnosis: DiagnosisSchema) -> Diagnosis:
+
+    medicines_vo = [
+        MedicineInfo(name=m.name, strength=m.strength, frequency=m.frequency)
+        for m in diagnosis.medicine_prescribed
+    ]
+
+    return Diagnosis(
+        disease=diagnosis.disease,
+        treatment=diagnosis.treatment,
+        medicine_prescribed=medicines_vo,
+    )
+
+
 # ให้มันรับ AddressSchema (ก้อนเล็ก) แล้วคืนค่าเป็น Address VO
 def to_address_vo(addr_schema: AddressSchema) -> Address:
     return Address(

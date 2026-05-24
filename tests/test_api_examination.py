@@ -83,3 +83,60 @@ def test_api_exam_when_not_found_queue_id_should_raise_error(
     print("\n[Exception Handler Response]:", not_found_queue_id.json())
     assert not_found_queue_id.status_code == 404
     assert "ไม่พบคิว" in not_found_queue_id.json()["detail"]
+
+
+def test_api_exam_should_finish_consul_and_update_state_complete_successfully(
+    client, api_staff_doctor, api_new_queues, diagnosis_payload
+):
+    staff_id = api_staff_doctor.json()["staff_id"]
+    queue_data = api_new_queues.json()
+
+    exam_payload = {
+        "queue_id": queue_data["queue_id"],
+        "staff_id": staff_id,
+    }
+
+    new_exam = client.post("/api/examination/start", json=exam_payload)
+    assert new_exam.status_code == 200
+
+    exam_data = new_exam.json()
+
+    finished_payload = {
+        "consultation_id": exam_data["consultation_id"],
+        "doctor_id": api_staff_doctor.json()["staff_id"],
+        "diagnosis": diagnosis_payload,
+    }
+
+    finished_exam = client.post("/api/examination/finish", json=finished_payload)
+
+    assert finished_exam.status_code == 200
+    finished_data = finished_exam.json()
+
+    # 🟢 1. ตรวจสอบ ID หลักๆ (ที่ป๋าเขียนไว้ ดีอยู่แล้วครับ)
+    assert finished_data["consultation_id"] == exam_data["consultation_id"]
+    assert finished_data["queue_id"] == exam_data["queue_id"]
+    assert finished_data["patient_id"] == exam_data["patient_id"]
+    assert (
+        finished_data["doctor_id"] == staff_id
+    )  # (💡 แนะนำแก้เป็น staff_id หรือ exam_data["doctor_id"] ตามตัวแปรที่เก็บนะครับป๋า)
+
+    # 🟢 2. ตรวจสอบ "โรค" และ "วิธีรักษา" ว่าตรงกับที่เราส่งไปไหม
+    assert finished_data["disease"] == diagnosis_payload["disease"]
+    assert finished_data["treatment"] == diagnosis_payload["treatment"]
+
+    # 🟢 3. ตรวจสอบ "รายการยา" (เพราะยามาเป็น List/Array)
+    # เช็คจำนวนยารวมก่อนว่าได้ครบเท่าที่สั่งไหม
+    assert len(finished_data["medicines"]) == len(
+        diagnosis_payload["medicine_prescribed"]
+    )
+
+    # วนลูปแกะเช็คไส้ในของยาตัวแรก (อินเด็กซ์ 0) เพื่อความชัวร์ว่าข้อมูลไม่สลับกัน
+    actual_medicine = finished_data["medicines"][0]
+    expected_medicine = diagnosis_payload["medicine_prescribed"][0]
+
+    assert actual_medicine["name"] == expected_medicine["name"]
+    assert actual_medicine["strength"] == expected_medicine["strength"]
+    assert actual_medicine["frequency"] == expected_medicine["frequency"]
+
+    # 🟢 4. ตรวจสอบ "เวลาที่ตรวจเสร็จ"
+    assert finished_data["finished_at"] is not None
