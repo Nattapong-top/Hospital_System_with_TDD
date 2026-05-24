@@ -49,7 +49,7 @@ class QueueStatus(Enum):
     WAITING = "รอ"
     IN_PROGRESS = "กำลังพบหมอ"
     COMPLETED = "ตรวจเสร็จแล้ว"
-    CANCELLED = "ยกเลิก"
+    CANCELLED = "ยกเลิกการตรวจ"
 
 
 class NationalID(DomainValueObject):

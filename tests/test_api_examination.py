@@ -112,7 +112,7 @@ def test_api_exam_should_finish_consul_and_update_state_complete_successfully(
     assert finished_exam.status_code == 200
     finished_data = finished_exam.json()
 
-    # 🟢 1. ตรวจสอบ ID หลักๆ (ที่ป๋าเขียนไว้ ดีอยู่แล้วครับ)
+    # 🟢 1. ตรวจสอบ ID หลักๆ
     assert finished_data["consultation_id"] == exam_data["consultation_id"]
     assert finished_data["queue_id"] == exam_data["queue_id"]
     assert finished_data["patient_id"] == exam_data["patient_id"]
@@ -140,3 +140,111 @@ def test_api_exam_should_finish_consul_and_update_state_complete_successfully(
 
     # 🟢 4. ตรวจสอบ "เวลาที่ตรวจเสร็จ"
     assert finished_data["finished_at"] is not None
+
+
+def test_api_examination_should_cancel_consultation_successfully(
+    client, api_new_queues, api_staff_doctor
+):
+    staff_id = api_staff_doctor.json()["staff_id"]
+    queue_data = api_new_queues.json()
+
+    exam_payload = {
+        "queue_id": queue_data["queue_id"],
+        "staff_id": staff_id,
+    }
+
+    new_exam = client.post("/api/examination/start", json=exam_payload)
+    assert new_exam.status_code == 200
+
+    exam_data = new_exam.json()
+    print(exam_data)
+    staff_id = exam_data["doctor_id"]
+
+    canceled_payload = {
+        "consultation_id": exam_data["consultation_id"],
+        "staff_id": staff_id,
+    }
+    cancel_exam = client.post("/api/examination/cancel", json=canceled_payload)
+    assert cancel_exam.status_code == 200
+    canceled_data = cancel_exam.json()
+    assert canceled_data["status"] == "ยกเลิกการตรวจ"
+    assert canceled_data["consultation_id"] == exam_data["consultation_id"]
+    assert canceled_data["staff_id"] == staff_id
+
+
+def test_api_exam_when_finish_with_not_found_consultation_id_should_raise_404(
+    client, api_staff_doctor, diagnosis_payload
+):
+    # 1. Arrange: เสก ID มั่วๆ ขึ้นมา
+    fake_consultation_id = str(uuid.uuid4())
+    staff_id = api_staff_doctor.json()["staff_id"]
+
+    finished_payload = {
+        "consultation_id": fake_consultation_id,
+        "doctor_id": staff_id,
+        "diagnosis": diagnosis_payload,
+    }
+
+    # 2. Act: ลองสั่งจบการตรวจ
+    res = client.post("/api/examination/finish", json=finished_payload)
+    print("\n[ดักจบตรวจมั่ว]:", res.json())
+
+    # 3. Assert: ต้องด่ากลับว่าไม่พบใบตรวจ
+    assert res.status_code == 404
+    assert "ไม่พบ" in res.json()["detail"]
+
+
+def test_api_exam_when_cancel_with_not_found_consultation_id_should_raise_404(
+    client, api_staff_doctor
+):
+    fake_consultation_id = str(uuid.uuid4())
+    staff_id = api_staff_doctor.json()["staff_id"]
+
+    canceled_payload = {
+        "consultation_id": fake_consultation_id,
+        "staff_id": staff_id,
+    }
+
+    res = client.post("/api/examination/cancel", json=canceled_payload)
+    print("\n[ดักยกเลิกมั่ว]:", res.json())
+
+    assert res.status_code == 404
+    assert "ไม่พบ" in res.json()["detail"]
+
+
+def test_api_exam_should_not_allow_cancel_if_already_finished(
+    client, api_staff_doctor, api_new_queues, diagnosis_payload
+):
+    # 1. Arrange: ทำการ Start และ Finish ให้เสร็จสมบูรณ์ก่อน
+    staff_id = api_staff_doctor.json()["staff_id"]
+    queue_data = api_new_queues.json()
+
+    # Start
+    start_res = client.post(
+        "/api/examination/start",
+        json={"queue_id": queue_data["queue_id"], "staff_id": staff_id},
+    )
+    exam_data = start_res.json()
+
+    # Finish
+    finish_res = client.post(
+        "/api/examination/finish",
+        json={
+            "consultation_id": exam_data["consultation_id"],
+            "doctor_id": staff_id,
+            "diagnosis": diagnosis_payload,
+        },
+    )
+    assert finish_res.status_code == 200
+
+    # 2. Act: หน้าด้านกดยกเลิกคิวที่เพิ่งตรวจเสร็จไปเมื่อกี้!
+    canceled_payload = {
+        "consultation_id": exam_data["consultation_id"],
+        "staff_id": staff_id,
+    }
+    cancel_res = client.post("/api/examination/cancel", json=canceled_payload)
+    print("\n[ดักยกเลิกคิวที่จบแล้ว]:", cancel_res.json())
+
+    # 3. Assert: ระบบต้องด่าว่าทำไม่ได้ (ขึ้นอยู่กับว่าป๋าพ่น Exception 400 หรือ 422 ไว้ครับ)
+    assert cancel_res.status_code == 400
+    # assert "ไม่สามารถยกเลิกได้" in cancel_res.json()["detail"]

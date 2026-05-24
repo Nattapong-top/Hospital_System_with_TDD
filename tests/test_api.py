@@ -181,7 +181,7 @@ def test_api_queue_cancel_visit_whit_status_waiting_should_successfully(
     data = q_cancel.json()
     assert isinstance(data, dict)
     assert data["queue_id"] == queue_id
-    assert data["status"] == "ยกเลิก"
+    assert data["status"] == "ยกเลิกการตรวจ"
 
 
 def test_api_queue_cancel_visit_whit_status_in_progress_should_successfully(
@@ -196,7 +196,7 @@ def test_api_queue_cancel_visit_whit_status_in_progress_should_successfully(
     data = q_cancel.json()
     assert isinstance(data, dict)
     assert data["queue_id"] == queue_id
-    assert data["status"] == "ยกเลิก"
+    assert data["status"] == "ยกเลิกการตรวจ"
 
 
 def test_api_queue_cancel_visit_with_status_complete_should_return_400(

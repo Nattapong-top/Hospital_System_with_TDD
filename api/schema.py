@@ -98,6 +98,19 @@ class ExamResponseSchema(BaseModel):
     status: QueueStatus
 
 
+class CancelRequestSchema(BaseModel):
+    consultation_id: UUID
+    staff_id: UUID
+
+
+class CancelResponseSchema(BaseModel):
+    consultation_id: UUID
+    queue_id: UUID
+    patient_id: UUID
+    staff_id: UUID
+    status: QueueStatus
+
+
 class MedicineInfoSchema(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     name: str

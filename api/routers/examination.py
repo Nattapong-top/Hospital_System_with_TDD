@@ -8,6 +8,8 @@ from api.schema import (
     ExamFinishResponseSchema,
     FinishRequestSchema,
     to_diagnosis_vo,
+    CancelResponseSchema,
+    CancelRequestSchema,
 )
 from domain.hospital_registry import HospitalRegistry
 
@@ -70,4 +72,27 @@ def finish_examination(finish_request: FinishRequestSchema) -> ExamFinishRespons
         treatment=finished_exam.diagnosis.treatment,
         medicines=finished_exam.diagnosis.medicine_prescribed,
         finished_at=finished_exam.finished_at,
+    )
+
+
+@examination_router.post("/cancel")
+def cancel_examination(cancel_request: CancelRequestSchema) -> CancelResponseSchema:
+    logger.info("--> [API] มีคำสั่งยกเลิกการตรวจยิงเข้ามา!")
+    logger.info(f"--> [API] ข้อมูลที่รับมาคือ: {cancel_request}")
+
+    exam_service = HospitalRegistry.consultation_service()
+    staff_service = HospitalRegistry.staff_service()
+
+    staff = staff_service.get_by_staff_id(cancel_request.staff_id)
+
+    canceled_exam = exam_service.cancel_consultation(
+        cancel_request.consultation_id, staff
+    )
+
+    return CancelResponseSchema(
+        consultation_id=canceled_exam.id,
+        queue_id=canceled_exam.queue_id,
+        patient_id=canceled_exam.patient_id,
+        staff_id=canceled_exam.doctor_id,
+        status=canceled_exam.status,
     )

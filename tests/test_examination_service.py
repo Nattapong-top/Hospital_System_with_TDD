@@ -170,7 +170,7 @@ def test_finish_consultation_invalid_status_should_raise_error(
 ):
     # 1. Arrange: แอบไปเปลี่ยนสถานะเป็น CANCELLED ก่อน (จำลองว่าถูกยกเลิกไปแล้ว)
     cancel_consul = exam_service.cancel_consultation(
-        new_examination.id, queue_id=new_examination.queue_id, staff=new_staff_doctor
+        new_examination.id, staff=new_staff_doctor
     )
     # new_examination.status = QueueStatus.CANCELLED
     # ต้องเซฟลง Repo ด้วยเพื่อให้ Service ไปดึงสถานะที่แก้แล้วออกมา
@@ -219,7 +219,6 @@ def test_cancel_consultation_should_succeed_and_increment_version(
     # 2. Act: สั่งยกเลิก
     cancelled_consul = exam_service.cancel_consultation(
         consultation_id=new_examination.id,
-        queue_id=new_examination.queue_id,
         staff=new_staff_doctor,
     )
 
@@ -245,7 +244,6 @@ def test_cannot_cancel_already_completed_consultation(
     with raises(Exception) as exc:
         exam_service.cancel_consultation(
             consultation_id=new_examination.id,
-            queue_id=new_examination.queue_id,
             staff=new_staff_doctor,
         )
 
@@ -262,5 +260,5 @@ def test_cancel_consultation_with_invalid_id_should_raise_error(
 
     with raises(ConsultationNotFoundError):
         exam_service.cancel_consultation(
-            consultation_id=uuid4(), queue_id=uuid4(), staff=new_staff_doctor
+            consultation_id=uuid4(), staff=new_staff_doctor
         )
