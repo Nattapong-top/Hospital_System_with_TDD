@@ -123,8 +123,9 @@ def queue_service():
 
 
 @fixture
-def exam_service(InMem_consul_repo, queue_service):
-    return ExaminationService(InMem_consul_repo, queue_service)
+def exam_service() -> ExaminationService:
+    exam_service = HospitalRegistry._set_switch_to_new_exam_service()
+    return exam_service
 
 
 @fixture
@@ -300,7 +301,7 @@ def new_staff_admin():
 
 
 @fixture
-def new_examination(InMem_consul_repo, new_queue, new_staff_doctor, exam_service):
+def new_examination(new_queue, new_staff_doctor, exam_service):
     return exam_service.start_consultation(
         queue_id=new_queue.id, staff=new_staff_doctor
     )

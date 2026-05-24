@@ -66,7 +66,7 @@ def test_exam_service_start_consul_should_save_to_repo(
 
 
 def test_exam_service_start_consul_should_get_by_consul_id_form_repo(
-    new_examination, new_queue, new_staff_doctor, exam_service
+    exam_service, new_examination, new_queue, new_staff_doctor
 ):
     service = exam_service
     consul_db = service.get_by_consultation_id(new_examination.id)
@@ -104,7 +104,7 @@ def test_finished_consultation_should_update_queue_completed(
         doctor=new_staff_doctor,
         diagnosis=diagnosis,
     )
-    assert finish_consul.status.value == new_examination.status.value
+    assert finish_consul.status.value == "ตรวจเสร็จแล้ว"
     assert finish_consul is not None
     assert finish_consul.id == new_examination.id
     assert finish_consul.queue_id == new_examination.queue_id
@@ -173,15 +173,18 @@ def test_finish_consultation_invalid_status_should_raise_error(
     new_examination, diagnosis, exam_service, new_staff_doctor
 ):
     # 1. Arrange: แอบไปเปลี่ยนสถานะเป็น CANCELLED ก่อน (จำลองว่าถูกยกเลิกไปแล้ว)
-    new_examination.status = QueueStatus.CANCELLED
+    cancel_consul = exam_service.cancel_consultation(
+        new_examination.id, queue_id=new_examination.queue_id, staff=new_staff_doctor
+    )
+    # new_examination.status = QueueStatus.CANCELLED
     # ต้องเซฟลง Repo ด้วยเพื่อให้ Service ไปดึงสถานะที่แก้แล้วออกมา
-    exam_service.consultation_repo.save(new_examination)
+    # exam_service.consultation_repo.update(new_examination)
 
     # 2. Act & Assert: ลองสั่งจบการตรวจ ต้องระเบิด Error ทันที!
     with raises(InvalidStatusTransitionError) as exc:
         exam_service.finish_consultation(
-            consultation_id=new_examination.id,
-            queue_id=new_examination.queue_id,
+            consultation_id=cancel_consul.id,
+            queue_id=cancel_consul.queue_id,
             doctor=new_staff_doctor,
             diagnosis=diagnosis,
         )
