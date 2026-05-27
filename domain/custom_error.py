@@ -92,6 +92,14 @@ class StaffNotFoundError(NotFoundError):
     default_message = "ไม่พบรหัสพนักงาน"
 
 
+class InvalidCredentialsError(DomainError):
+    default_message = "ชื่อผู้ใช้ หรือ รหัสผ่านไม่ถูกต้อง"
+
+
+class AccountSuspendedError(DomainError):
+    default_message = "บัญชีนี้ถูกระงับการใช้งาน กรุณาติดต่อผู้ดูแลระบบ"
+
+
 # =====================================================================
 # Patient & Generic Errors (ทั่วไปและคนไข้)
 # =====================================================================

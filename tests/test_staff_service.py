@@ -1,8 +1,13 @@
 from uuid import UUID
 
+import pytest
 from pytest import raises
 
-from domain.custom_error import DuplicateUsernameError
+from domain.custom_error import (
+    DuplicateUsernameError,
+    InvalidCredentialsError,
+    AccountSuspendedError,
+)
 from domain.domain_service.staff_service import StaffService
 from domain.hospital_registry import HospitalRegistry
 from domain.value_object import StaffRole, HashedPassword
@@ -104,25 +109,30 @@ def test_staff_service_with_authenticate_should_return_staff_when_credential_are
     assert isinstance(auth_staff.hashed_password, HashedPassword)
 
 
-def test_staff_service_with_authenticate_should_return_none_when_are_password_incorrect(
+def test_staff_service_with_authenticate_should_raise_error_when_are_password_incorrect(
     new_register_staff, staff_service
 ):
-    auth_staff = staff_service.authenticate_staff(
-        username_str="nattapong-top", plain_password="Paa-Top_No_IT_5555"
-    )
-    assert auth_staff is None
+    with pytest.raises(InvalidCredentialsError) as err:
+
+        staff_service.authenticate_staff(
+            username_str="nattapong-top", plain_password="Paa-Top_No_IT_5555"
+        )
+
+    assert "ชื่อผู้ใช้ หรือ รหัสผ่านไม่ถูกต้อง" in str(err.value)
 
 
-def test_staff_service_with_authenticate_should_return_none_when_are_username_incorrect(
+def test_staff_service_with_authenticate_should_raise_error_when_are_username_incorrect(
     new_register_staff, staff_service
 ):
-    auth_staff = staff_service.authenticate_staff(
-        username_str="Top_No_IT", plain_password="Paa-TopIT_12123"
-    )
-    assert auth_staff is None
+    with pytest.raises(InvalidCredentialsError) as err:
+        staff_service.authenticate_staff(
+            username_str="Top_No_IT", plain_password="Paa-TopIT_12123"
+        )
+
+    assert "ชื่อผู้ใช้ หรือ รหัสผ่านไม่ถูกต้อง" in str(err.value)
 
 
-def test_staff_service_with_authenticate_should_return_none_when_is_active_false(
+def test_staff_service_with_authenticate_should_raise_error_when_is_active_false(
     staff_service,
 ):
     # 1. สมัครพนักงานใหม่เลย ใช้เลขบัตรและ Username ที่ "ไม่ซ้ำ" กับเทสข้ออื่น
@@ -145,15 +155,15 @@ def test_staff_service_with_authenticate_should_return_none_when_is_active_false
     staff_service.suspend_staff(staff.staff_id)
 
     # 4. ลองล็อกอินด้วยรหัสสด
-    auth_staff = staff_service.authenticate_staff(
-        username_str="banned_doctor_999", plain_password="Paa-TopIT_12123"
-    )
+    with pytest.raises(AccountSuspendedError) as err:
+        staff_service.authenticate_staff(
+            username_str="banned_doctor_999", plain_password="Paa-TopIT_12123"
+        )
 
-    # 5. ต้องเข้าไม่ได้ (return None)
-    assert auth_staff is None
+    assert "บัญชีนี้ถูกระงับการใช้งาน กรุณาติดต่อผู้ดูแลระบบ" in str(err.value)
 
 
-def test_staff_service_with_suspend_should_return_none_when_is_active_false(
+def test_staff_service_with_suspend_should_raise_error_when_is_active_false(
     staff_service,
 ):
     # 1. สมัครพนักงานใหม่เลย ใช้เลขบัตรและ Username ที่ "ไม่ซ้ำ" กับเทสข้ออื่น
@@ -180,12 +190,12 @@ def test_staff_service_with_suspend_should_return_none_when_is_active_false(
     assert suspend_staff.version.number == 2
 
     # 4. ลองล็อกอินด้วยรหัสสด
-    auth_staff = staff_service.authenticate_staff(
-        username_str="banned_doctor_999", plain_password="Paa-TopIT_12123"
-    )
+    with pytest.raises(AccountSuspendedError) as err:
+        staff_service.authenticate_staff(
+            username_str="banned_doctor_999", plain_password="Paa-TopIT_12123"
+        )
 
-    # 5. ต้องเข้าไม่ได้ (return None)
-    assert auth_staff is None
+    assert "บัญชีนี้ถูกระงับการใช้งาน กรุณาติดต่อผู้ดูแลระบบ" in str(err.value)
 
 
 def test_staff_service_with_reactivate_should_return_staff_when_authenticated(

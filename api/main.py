@@ -9,6 +9,7 @@ from api.routers import consultation, patient, queues, staff, examination
 from domain.custom_error import (
     DomainError,
     NotFoundError,
+    InvalidCredentialsError,
 )
 
 # ฝัง GPS ให้ Python
@@ -57,6 +58,18 @@ async def generic_not_found_error(request: Request, exc: NotFoundError):
 
     return JSONResponse(
         status_code=404,
+        content={"detail": exc.message},
+    )
+
+
+@app.exception_handler(InvalidCredentialsError)
+async def invalid_credentials_error(request: Request, exc: DomainError):
+    """
+    เมื่อไหร่ที่ login ไม่ผ่าน
+    ให้ตอบกลับเป็น 401 พร้อมข้อความ Incorrect username or password
+    """
+    return JSONResponse(
+        status_code=401,
         content={"detail": exc.message},
     )
 
