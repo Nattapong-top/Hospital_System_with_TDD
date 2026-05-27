@@ -142,6 +142,19 @@ class ExamFinishResponseSchema(BaseModel):
     finished_at: datetime
 
 
+class StaffLoginRequest(BaseModel):
+    username: str
+    password: str
+
+
+class StaffLoginResponse(BaseModel):
+    staff_id: UUID
+    username: str
+    first_name: str
+    role: str
+    is_active: bool
+
+
 # 1. สร้างฟังก์ชันแปลงโฉม (Mapper)
 
 

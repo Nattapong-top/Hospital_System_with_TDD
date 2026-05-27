@@ -68,3 +68,64 @@ def test_api_register_staff_duplicate_username_should_return_400(client):
     # 3. ASSERT: ต้องโดนเตะก้านคอกลับมา!
     assert response.status_code == 400  # ต้องเป็น 400 Bad Request (หรือ 409 Conflict)
     assert "มีคนใช้แล้ว" in response.json()["detail"]
+
+
+def test_api_staff_login_username_password_valid_should_success(
+    client, api_staff_doctor
+):
+
+    staff = api_staff_doctor.json()
+
+    assert staff is not None
+
+    staff_login_payload = {"username": staff["username"], "password": "password123"}
+
+    res_login = client.post("/api/staff/login", json=staff_login_payload)
+
+    assert res_login.status_code == 200
+    data = res_login.json()
+    assert data["staff_id"] == staff["staff_id"]
+    assert data["username"] == staff["username"]
+    assert data["first_name"] == staff["first_name"]
+    assert data["is_active"] is True
+
+
+def test_api_staff_login_username_invalid_should_status_401(client, api_staff_doctor):
+
+    staff = api_staff_doctor.json()
+
+    assert staff is not None
+
+    staff_login_payload = {"username": "invalid_username", "password": "password123"}
+
+    res_login = client.post("/api/staff/login", json=staff_login_payload)
+
+    assert res_login.status_code == 401
+    assert res_login.json()["detail"] == "ชื่อผู้ใช้ หรือ รหัสผ่านไม่ถูกต้อง"
+
+
+def test_api_staff_login_password_invalid_should_status_401(client, api_staff_doctor):
+
+    staff = api_staff_doctor.json()
+
+    assert staff is not None
+
+    staff_login_payload = {
+        "username": staff["username"],
+        "password": "Invalid_password",
+    }
+
+    res_login = client.post("/api/staff/login", json=staff_login_payload)
+
+    assert res_login.status_code == 401
+    assert res_login.json()["detail"] == "ชื่อผู้ใช้ หรือ รหัสผ่านไม่ถูกต้อง"
+
+
+def test_api_staff_login_user_pass_invalid_should_raise_error(client, api_staff_doctor):
+
+    invalid_login_payload = {"username": "valid_username", "password": "valid_password"}
+
+    invalid_login = client.post("/api/staff/login", json=invalid_login_payload)
+
+    assert invalid_login.status_code == 401
+    assert invalid_login.json()["detail"] == "ชื่อผู้ใช้ หรือ รหัสผ่านไม่ถูกต้อง"

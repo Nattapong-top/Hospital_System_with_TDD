@@ -1,5 +1,9 @@
 from uuid import UUID
-from domain.custom_error import DuplicateUsernameError
+from domain.custom_error import (
+    DuplicateUsernameError,
+    InvalidCredentialsError,
+    AccountSuspendedError,
+)
 from domain.staff_entities import Staff
 from domain.value_object import Username
 from infrastructure.sqllite_staff_repository import SqlStaffRepository
@@ -44,19 +48,15 @@ class StaffService:
         self.staff_repo.save(new_staff)
         return new_staff
 
-    def authenticate_staff(
-        self, username_str: str, plain_password: str
-    ) -> Staff | None:
+    def authenticate_staff(self, username_str: str, plain_password: str) -> Staff:
         """ยืนยันตัวตนพนักงาน (Login)"""
         staff = self.get_by_username(username_str)
 
-        # เช็คว่ามีตัวตน และ บัญชีต้องไม่โดนระงับ (is_active=True)
-        if not staff or not staff.is_active:
-            return None
+        if not staff or not staff.hashed_password.verify(plain_password):
+            raise InvalidCredentialsError()
 
-        # เช็ครหัสผ่านผ่าน Value Object
-        if not staff.hashed_password.verify(plain_password):
-            return None
+        if not staff.is_active:
+            raise AccountSuspendedError()
 
         return staff
 

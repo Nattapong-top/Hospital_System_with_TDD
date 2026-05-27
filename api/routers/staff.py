@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException
 
-from api.schema import RegisterStaffRequest
+from api.schema import RegisterStaffRequest, StaffLoginRequest, StaffLoginResponse
 from domain.hospital_registry import HospitalRegistry
 from domain.value_object import StaffRole
 
@@ -16,7 +16,9 @@ def api_register_new_staff(request: RegisterStaffRequest):
     try:
         staff_role = StaffRole[request.role.upper()]
     except KeyError:
-        raise HTTPException(status_code=400, detail="Role ต้องเป็น DOCTOR หรือ NURSE")
+        raise HTTPException(
+            status_code=400, detail="Ro   le ต้องเป็น DOCTOR หรือ NURSE"
+        )
 
     new_staff = staff_service.register_staff(
         username_str=request.username,
@@ -38,3 +40,22 @@ def api_register_new_staff(request: RegisterStaffRequest):
         "role": new_staff.role.value,
         "is_active": new_staff.is_active,
     }
+
+
+@router.post("/login")
+def api_staff_login(login_request: StaffLoginRequest) -> StaffLoginResponse:
+
+    staff_service = HospitalRegistry.staff_service()
+
+    valid_login = staff_service.authenticate_staff(
+        username_str=login_request.username,
+        plain_password=login_request.password,
+    )
+
+    return StaffLoginResponse(
+        staff_id=valid_login.staff_id,
+        username=valid_login.username.id,
+        first_name=valid_login.first_name.value,
+        role=valid_login.role.value,
+        is_active=valid_login.is_active,
+    )
