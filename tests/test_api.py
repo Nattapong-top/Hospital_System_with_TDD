@@ -98,11 +98,16 @@ def test_api_triage_should_fail_when_no_vital_sign(client, valid_patient_payload
 
 
 def test_api_get_all_queues_today_should_return_list_all_queues_today(
-    api_new_queues, client
+    api_new_queues, client, token_doctor
 ):
+    api_new_queues.json()
+    token_str = token_doctor.json()["access_token"]
     q = api_new_queues
     assert q.status_code == 200
-    response = client.get("/api/queues/today")
+    response = client.get(
+        "/api/queues/today",
+        headers={"Authorization": f"Bearer {token_str}"},
+    )
 
     assert response.status_code == 200
     data = response.json()

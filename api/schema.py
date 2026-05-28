@@ -148,6 +148,8 @@ class StaffLoginRequest(BaseModel):
 
 
 class StaffLoginResponse(BaseModel):
+    access_token: str
+    token_type: str
     staff_id: UUID
     username: str
     first_name: str

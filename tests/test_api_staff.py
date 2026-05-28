@@ -129,3 +129,39 @@ def test_api_staff_login_user_pass_invalid_should_raise_error(client, api_staff_
 
     assert invalid_login.status_code == 401
     assert invalid_login.json()["detail"] == "ชื่อผู้ใช้ หรือ รหัสผ่านไม่ถูกต้อง"
+
+
+def test_api_staff_access_protected_route_with_valid_token_should_success(
+    client, api_staff_doctor
+):
+    staff = api_staff_doctor.json()
+
+    login_payload = {"username": staff["username"], "password": "password123"}
+
+    valid_token = client.post("/api/staff/login", json=login_payload)
+    assert valid_token.status_code == 200
+    token_str = valid_token.json()["access_token"]
+
+    response = client.get(
+        "/api/queues/today",
+        headers={"Authorization": f"Bearer {token_str}"},
+    )
+
+    assert response.status_code == 200
+
+
+def test_api_staff_access_protected_route_with_invalid_token_should_401(
+    client, api_staff_doctor
+):
+
+    import uuid
+
+    token_str = uuid.uuid4().hex
+
+    response = client.get(
+        "/api/queues/today", headers={"Authorization": f"Bearer {token_str}"}
+    )
+
+    assert response.status_code == 401
+    data = response.json()
+    assert "Token ไม่ถูกต้องหรือหมดอายุแล้ว" in data["detail"]

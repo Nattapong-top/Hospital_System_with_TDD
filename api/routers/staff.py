@@ -3,6 +3,7 @@ from fastapi import APIRouter, HTTPException
 from api.schema import RegisterStaffRequest, StaffLoginRequest, StaffLoginResponse
 from domain.hospital_registry import HospitalRegistry
 from domain.value_object import StaffRole
+from infrastructure.auth.jwt_service import create_access_token
 
 # สร้าง Router ประจำแผนก (prefix จะไปแปะหน้า URL ทุกตัวในไฟล์นี้)
 router = APIRouter(prefix="/api/staff", tags=["Staff"])
@@ -52,7 +53,13 @@ def api_staff_login(login_request: StaffLoginRequest) -> StaffLoginResponse:
         plain_password=login_request.password,
     )
 
+    token = create_access_token(
+        data={"sub": str(valid_login.staff_id), "role": valid_login.role.value}
+    )
+
     return StaffLoginResponse(
+        access_token=token,
+        token_type="bearer",
         staff_id=valid_login.staff_id,
         username=valid_login.username.id,
         first_name=valid_login.first_name.value,

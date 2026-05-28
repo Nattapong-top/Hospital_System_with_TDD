@@ -454,3 +454,11 @@ def api_staff_doctor(client, payload_staff_doctor):
     # สมัครคนแรกเข้าทำงาน (ผ่านฉลุย)
     staff_doctor = client.post("/api/staff/register", json=payload_staff_doctor)
     return staff_doctor
+
+
+@fixture
+def token_doctor(client, api_staff_doctor):
+    staff = api_staff_doctor.json()
+    login_payload = {"username": staff["username"], "password": "password123"}
+    response = client.post("/api/staff/login", json=login_payload)
+    return response

@@ -1,17 +1,18 @@
 from datetime import date
 from uuid import UUID
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 
 from api.schema import TriageRequest, _to_vital_signs_vo
 from domain.hospital_registry import HospitalRegistry
+from infrastructure.auth.jwt_service import get_current_staff
 
 queues_router = APIRouter(prefix="/api/queues", tags=["Queues"])
 
 
 # 🚩 จุดที่ 1: ต้องเอา /today ไว้ข้างบน {queue_id} เสมอ!
 @queues_router.get("/today")
-def get_all_queues_today() -> list:
+def get_all_queues_today(current_staff=Depends(get_current_staff)) -> list:
     """เมนูสำหรับพยาบาล: ดูรายชื่อคิวทุกคนของวันนี้"""
     qs = HospitalRegistry.queue_service()
 
