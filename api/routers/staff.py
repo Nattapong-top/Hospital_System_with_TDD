@@ -12,7 +12,7 @@ from domain.value_object import StaffRole
 from infrastructure.auth.jwt_service import (
     create_access_token,
     create_refresh_token,
-    decode_access_token,
+    decode_refresh_token,
 )
 
 # สร้าง Router ประจำแผนก (prefix จะไปแปะหน้า URL ทุกตัวในไฟล์นี้)
@@ -76,7 +76,7 @@ def api_staff_login(login_request: StaffLoginRequest) -> StaffLoginResponse:
 
 @router.post("/refresh", response_model=TokenRefreshResponse)
 def refresh_access_token(request: RefreshTokenRequest) -> TokenRefreshResponse:
-    payload = decode_access_token(request.refresh_token)
+    payload = decode_refresh_token(request.refresh_token)
 
     if not payload or "sub" not in payload:
         raise HTTPException(status_code=401, detail="Token ไม่ถูกต้องหรือหมดอายุแล้ว")

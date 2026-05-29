@@ -17,7 +17,7 @@ def create_access_token(data: dict) -> str:
     expire = datetime.now(timezone.utc) + timedelta(
         minutes=settings.access_token_expire_minutes
     )
-    payload.update({"exp": expire, "jti": uuid.uuid4().hex})
+    payload.update({"exp": expire, "jti": uuid.uuid4().hex, "type": "access"})
 
     return jwt.encode(payload, settings.secret_key, algorithm=settings.algorithm)
 
@@ -27,14 +27,31 @@ def create_refresh_token(data: dict) -> str:
     expire = datetime.now(timezone.utc) + timedelta(
         minutes=settings.refresh_token_expire_minutes
     )
-    payload.update({"exp": expire, "jti": uuid.uuid4().hex})
+    payload.update({"exp": expire, "jti": uuid.uuid4().hex, "type": "refresh"})
 
     return jwt.encode(payload, settings.secret_key, algorithm=settings.algorithm)
 
 
 def decode_access_token(token: str) -> dict | None:
     try:
-        return jwt.decode(token, settings.secret_key, algorithms=[settings.algorithm])
+        payload = jwt.decode(
+            token, settings.secret_key, algorithms=[settings.algorithm]
+        )
+        if payload.get("type") != "access":
+            return None
+        return payload
+    except JWTError:
+        return None
+
+
+def decode_refresh_token(token: str) -> dict | None:
+    try:
+        payload = jwt.decode(
+            token, settings.secret_key, algorithms=[settings.algorithm]
+        )
+        if payload.get("type") != "refresh":
+            return None
+        return payload
     except JWTError:
         return None
 
