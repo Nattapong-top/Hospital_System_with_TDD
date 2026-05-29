@@ -13,6 +13,7 @@ class Settings(BaseSettings):
     secret_key: str
     algorithm: str = "HS256"
     access_token_expire_minutes: int = 60
+    refresh_token_expire_minutes: int = 60 * 24 * 7
 
     # บอกให้ไปอ่านจากไฟล์ .env ถ้ามีครับป๋า
     model_config = SettingsConfigDict(

@@ -147,14 +147,26 @@ class StaffLoginRequest(BaseModel):
     password: str
 
 
-class StaffLoginResponse(BaseModel):
+class TokenBaseResponse(BaseModel):
     access_token: str
-    token_type: str
+    refresh_token: str
+    token_type: str = "bearer"
+
+
+class RefreshTokenRequest(BaseModel):
+    refresh_token: str
+
+
+class StaffLoginResponse(TokenBaseResponse):
     staff_id: UUID
     username: str
     first_name: str
     role: str
     is_active: bool
+
+
+class TokenRefreshResponse(TokenBaseResponse):
+    pass
 
 
 # 1. สร้างฟังก์ชันแปลงโฉม (Mapper)
