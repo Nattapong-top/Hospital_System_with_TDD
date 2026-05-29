@@ -165,3 +165,33 @@ def test_api_staff_access_protected_route_with_invalid_token_should_401(
     assert response.status_code == 401
     data = response.json()
     assert "Token ไม่ถูกต้องหรือหมดอายุแล้ว" in data["detail"]
+
+
+def test_api_staff_refresh_token_with_valid_token_should_success(
+    client, api_staff_doctor
+):
+    staff = api_staff_doctor.json()
+    login_payload = {"username": staff["username"], "password": "password123"}
+    login_response = client.post("/api/staff/login", json=login_payload)
+    assert login_response.status_code == 200
+    tokens = login_response.json()
+    assert "refresh_token" in tokens
+
+    refresh_token_str = tokens["refresh_token"]
+
+    refresh_payload = {"refresh_token": refresh_token_str}
+    refresh_response = client.post("/api/staff/refresh", json=refresh_payload)
+
+    assert refresh_response.status_code == 200
+    new_tokens = refresh_response.json()
+    assert "access_token" in new_tokens
+    assert new_tokens["refresh_token"] != tokens["refresh_token"]
+    assert new_tokens["token_type"] == "bearer"
+
+
+def test_api_staff_refresh_token_with_invalid_token_should_401(client):
+    refresh_payload = {"refresh_token": "invalid_token"}
+    response = client.post("/api/staff/refresh", json=refresh_payload)
+
+    assert response.status_code == 401
+    assert "Token ไม่ถูกต้องหรือหมดอายุแล้ว" in response.json()["detail"]

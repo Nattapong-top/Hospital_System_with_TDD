@@ -1,9 +1,19 @@
 from fastapi import APIRouter, HTTPException
 
-from api.schema import RegisterStaffRequest, StaffLoginRequest, StaffLoginResponse
+from api.schema import (
+    RegisterStaffRequest,
+    StaffLoginRequest,
+    StaffLoginResponse,
+    RefreshTokenRequest,
+    TokenRefreshResponse,
+)
 from domain.hospital_registry import HospitalRegistry
 from domain.value_object import StaffRole
-from infrastructure.auth.jwt_service import create_access_token
+from infrastructure.auth.jwt_service import (
+    create_access_token,
+    create_refresh_token,
+    decode_refresh_token,
+)
 
 # สร้าง Router ประจำแผนก (prefix จะไปแปะหน้า URL ทุกตัวในไฟล์นี้)
 router = APIRouter(prefix="/api/staff", tags=["Staff"])
@@ -17,9 +27,7 @@ def api_register_new_staff(request: RegisterStaffRequest):
     try:
         staff_role = StaffRole[request.role.upper()]
     except KeyError:
-        raise HTTPException(
-            status_code=400, detail="Ro   le ต้องเป็น DOCTOR หรือ NURSE"
-        )
+        raise HTTPException(status_code=400, detail="Role ต้องเป็น DOCTOR หรือ NURSE")
 
     new_staff = staff_service.register_staff(
         username_str=request.username,
@@ -43,7 +51,7 @@ def api_register_new_staff(request: RegisterStaffRequest):
     }
 
 
-@router.post("/login")
+@router.post("/login", response_model=StaffLoginResponse)
 def api_staff_login(login_request: StaffLoginRequest) -> StaffLoginResponse:
 
     staff_service = HospitalRegistry.staff_service()
@@ -53,16 +61,29 @@ def api_staff_login(login_request: StaffLoginRequest) -> StaffLoginResponse:
         plain_password=login_request.password,
     )
 
-    token = create_access_token(
-        data={"sub": str(valid_login.staff_id), "role": valid_login.role.value}
-    )
+    token_data = {"sub": str(valid_login.staff_id), "role": valid_login.role.value}
 
     return StaffLoginResponse(
-        access_token=token,
-        token_type="bearer",
+        access_token=create_access_token(token_data),
+        refresh_token=create_refresh_token(token_data),
         staff_id=valid_login.staff_id,
         username=valid_login.username.id,
         first_name=valid_login.first_name.value,
         role=valid_login.role.value,
         is_active=valid_login.is_active,
+    )
+
+
+@router.post("/refresh", response_model=TokenRefreshResponse)
+def refresh_access_token(request: RefreshTokenRequest) -> TokenRefreshResponse:
+    payload = decode_refresh_token(request.refresh_token)
+
+    if not payload or "sub" not in payload:
+        raise HTTPException(status_code=401, detail="Token ไม่ถูกต้องหรือหมดอายุแล้ว")
+
+    token_data = {"sub": payload["sub"], "role": payload.get("role")}
+
+    return TokenRefreshResponse(
+        access_token=create_access_token(token_data),
+        refresh_token=create_refresh_token(token_data),
     )
