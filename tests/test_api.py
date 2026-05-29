@@ -117,6 +117,16 @@ def test_api_get_all_queues_today_should_return_list_all_queues_today(
     assert data[0]["queue_id"] == q.json()["queue_id"]
 
 
+def test_api_staff_access_protected_route_without_token_should_401(client):
+    # ไม่มีการแนบ headers={"Authorization": ...} เข้าไปเลย
+    response = client.get("/api/queues/today")
+
+    assert response.status_code == 401
+    assert (
+        response.json()["detail"] == "Not authenticated"
+    )  # Error default ของ FastAPI OAuth2PasswordBearer
+
+
 def test_api_queue_start_consultation_successfully(client, api_new_queues):
     queue_id = api_new_queues.json()["queue_id"]
 
