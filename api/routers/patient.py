@@ -1,6 +1,7 @@
 from fastapi import APIRouter, HTTPException
 
-from api.schema import RegisterRequest, to_address_vo, registrar_patient_detail
+from api.schema import RegisterRequest
+from api.mapper import to_address_vo, registrar_patient_detail
 from domain.hospital_registry import HospitalRegistry
 
 patient_router = APIRouter(prefix="/api/patients", tags=["Patients"])

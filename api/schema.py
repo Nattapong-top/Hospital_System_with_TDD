@@ -1,33 +1,61 @@
 from datetime import datetime
 from typing import Optional
 from uuid import UUID
+from pydantic import BaseModel, Field, ConfigDict
+from domain.value_object import PatientRights, Province, QueueStatus
 
-from pydantic import BaseModel, Field, ValidationError, ConfigDict
-
-from domain.custom_error import MissingDiagnosisError
-from domain.domain_service.patient_registrar import PatientRegistrar
-from domain.entities import Patient
-from domain.value_object import (
-    PatientRights,
-    Province,
-    Address,
-    NationalID,
-    Name,
-    PhoneNumber,
-    DateOfBirth,
-    Rights,
-    VitalSigns,
-    BloodPressure,
-    Weight,
-    Height,
-    Temperature,
-    Diagnosis,
-    MedicineInfo,
-    QueueStatus,
-)
+# ==========================================
+# 1. BASE SCHEMAS (สำหรับใช้สืบทอดเพื่อลดโค้ดซ้ำตามหลัก DRY)
+# ==========================================
 
 
-# --- จุดบริการ (Endpoints) ---
+class PersonalInfoBase(BaseModel):
+    """ข้อมูลส่วนบุคคลพื้นฐาน ใช้ร่วมกันทั้งตอนสมัครพนักงานและลงทะเบียนคนไข้"""
+
+    national_id: str = Field(
+        ..., min_length=13, max_length=13, description="เลขบัตรประชาชน 13 หลัก"
+    )
+    first_name: str
+    last_name: str
+    phone_number: str
+    dob_year: int
+    dob_month: int
+    dob_day: int
+
+
+class StaffInfoBase(BaseModel):
+    """ข้อมูลพื้นฐานของพนักงานในระบบ"""
+
+    staff_id: UUID
+    username: str
+    first_name: str
+    last_name: str
+    phone_number: str
+    role: str
+
+
+class TokenBaseResponse(BaseModel):
+    """โครงสร้างพื้นฐานของ JWT Token"""
+
+    access_token: str
+    refresh_token: str
+    token_type: str = "bearer"
+
+
+class ConsultationBaseResponse(BaseModel):
+    """โครงสร้างพื้นฐานขากลับของระบบคิวและการตรวจ"""
+
+    consultation_id: UUID
+    queue_id: UUID
+    patient_id: UUID
+    status: QueueStatus
+
+
+# ==========================================
+# 2. ADDRESS SCHEMAS
+# ==========================================
+
+
 class AddressSchema(BaseModel):
     house_number: str
     street: str
@@ -37,35 +65,68 @@ class AddressSchema(BaseModel):
     postal_code: str
 
 
-# --- Pydantic Schemas สำหรับระบบพนักงาน ---
-class RegisterStaffRequest(BaseModel):
+# ==========================================
+# 3. STAFF / AUTH SCHEMAS
+# ==========================================
+
+
+class RegisterStaffRequest(PersonalInfoBase):
+    """รับข้อมูลเพื่อลงทะเบียนพนักงานใหม่"""
+
     username: str = Field(..., min_length=4, description="ชื่อผู้ใช้งาน")
     password: str = Field(..., min_length=6, description="รหัสผ่าน")
-    national_id: str = Field(..., min_length=13, max_length=13)  # บังคับ 13 หลัก
-    first_name: str
-    last_name: str
-    dob_year: int
-    dob_month: int
-    dob_day: int
-    phone_number: str
     role: str
 
 
-# --- ข้อมูลรับเข้า (Request Schema) ---
-class RegisterRequest(BaseModel):
-    national_id: str
-    first_name: str
-    last_name: str
-    phone_number: str
-    dob_year: int
-    dob_month: int
-    dob_day: int
+class StaffRegisterResponse(StaffInfoBase):
+    is_active: bool
+
+
+class StaffLoginRequest(BaseModel):
+    username: str
+    password: str
+
+
+class RefreshTokenRequest(BaseModel):
+    refresh_token: str
+
+
+class StaffLoginResponse(TokenBaseResponse, StaffInfoBase):
+    """พ่นข้อมูลกลับหลังพนักงาน Login สำเร็จ (รวมทั้ง Token และข้อมูลส่วนตัว)"""
+
+    is_active: bool
+
+
+class TokenRefreshResponse(TokenBaseResponse):
+    """ส่งกุญแจชุดใหม่กลับไปเมื่อมีการขอ Refresh Token"""
+
+    pass
+
+
+class StaffProfileResponse(StaffInfoBase):
+    """ข้อมูลหน้าตาโปรไฟล์สำหรับ Endpoint /me"""
+
+    message: str = "ดึงข้อมูลโปรไฟล์สำเร็จ!"
+
+
+# ==========================================
+# 4. PATIENT SCHEMAS
+# ==========================================
+
+
+class RegisterRequest(PersonalInfoBase):
+    """รับข้อมูลลงทะเบียนคนไข้ใหม่"""
+
     registered_address: AddressSchema
     current_address: AddressSchema
     rights_type: PatientRights
 
 
-# --- ข้อมูลสัญญาณชีพ (Schema) ---
+# ==========================================
+# 5. VITAL SIGNS / TRIAGE SCHEMAS
+# ==========================================
+
+
 class VitalSignsSchema(BaseModel):
     systolic: int
     diastolic: int
@@ -75,27 +136,23 @@ class VitalSignsSchema(BaseModel):
     symptom: str
 
 
-# --- ข้อมูลรับเข้าสำหรับการออกคิว ---
 class TriageRequest(BaseModel):
-    patient_id: UUID  # ต้องส่ง ID ของคนไข้ที่ได้จากตอนลงทะเบียนมาด้วย
+    patient_id: UUID
     vitals: Optional[VitalSignsSchema] = None
 
 
-# --- ข้อมูลรับเข้าสำหรับเข้าพบหมอ ---
+# ==========================================
+# 6. EXAMINATION / CONSULTATION SCHEMAS
+# ==========================================
+
+
 class ExamRequestSchema(BaseModel):
     queue_id: UUID
     staff_id: UUID
-    # patient_id: UUID
-    # vital_signs: VitalSignsSchema
 
 
-# --- ส่งคืนให้ API หลังพบหมอ ---
-class ExamResponseSchema(BaseModel):
-    consultation_id: UUID
-    queue_id: UUID
-    patient_id: UUID
+class ExamResponseSchema(ConsultationBaseResponse):
     doctor_id: UUID
-    status: QueueStatus
 
 
 class CancelRequestSchema(BaseModel):
@@ -103,12 +160,8 @@ class CancelRequestSchema(BaseModel):
     staff_id: UUID
 
 
-class CancelResponseSchema(BaseModel):
-    consultation_id: UUID
-    queue_id: UUID
-    patient_id: UUID
+class CancelResponseSchema(ConsultationBaseResponse):
     staff_id: UUID
-    status: QueueStatus
 
 
 class MedicineInfoSchema(BaseModel):
@@ -140,124 +193,3 @@ class ExamFinishResponseSchema(BaseModel):
     treatment: str
     medicines: list[MedicineInfoSchema]
     finished_at: datetime
-
-
-class StaffLoginRequest(BaseModel):
-    username: str
-    password: str
-
-
-class TokenBaseResponse(BaseModel):
-    access_token: str
-    refresh_token: str
-    token_type: str = "bearer"
-
-
-class RefreshTokenRequest(BaseModel):
-    refresh_token: str
-
-
-class StaffLoginResponse(TokenBaseResponse):
-    staff_id: UUID
-    username: str
-    first_name: str
-    role: str
-    is_active: bool
-
-
-class TokenRefreshResponse(TokenBaseResponse):
-    pass
-
-
-# 1. สร้างฟังก์ชันแปลงโฉม (Mapper)
-
-
-def to_diagnosis_vo(diagnosis: DiagnosisSchema) -> Diagnosis:
-
-    medicines_vo = [
-        MedicineInfo(name=m.name, strength=m.strength, frequency=m.frequency)
-        for m in diagnosis.medicine_prescribed
-    ]
-
-    return Diagnosis(
-        disease=diagnosis.disease,
-        treatment=diagnosis.treatment,
-        medicine_prescribed=medicines_vo,
-    )
-
-
-# ให้มันรับ AddressSchema (ก้อนเล็ก) แล้วคืนค่าเป็น Address VO
-def to_address_vo(addr_schema: AddressSchema) -> Address:
-    return Address(
-        house_number=addr_schema.house_number,
-        street=addr_schema.street,
-        sub_district=addr_schema.sub_district,
-        district=addr_schema.district,
-        province=addr_schema.province,
-        postal_code=addr_schema.postal_code,
-    )
-
-
-def registrar_patient_detail(
-    current_addr: Address,
-    registered_addr: Address,
-    registrar: PatientRegistrar,
-    request: RegisterRequest,
-) -> Patient:
-    registered_patient = registrar.register_new_patient(
-        national_id=NationalID(id=request.national_id),
-        first_name=Name(value=request.first_name),
-        last_name=Name(value=request.last_name),
-        phone_number=PhoneNumber(value=request.phone_number),
-        date_of_birth=DateOfBirth(
-            year=request.dob_year, month=request.dob_month, day=request.dob_day
-        ),
-        registered_address=registered_addr,
-        current_address=current_addr,
-        rights=Rights(rights_type=request.rights_type),
-    )
-    return registered_patient
-
-
-def _to_vital_signs_vo(request: TriageRequest) -> VitalSigns:
-    vitals = VitalSigns(
-        blood_pressure=BloodPressure(
-            systolic=request.vitals.systolic, diastolic=request.vitals.diastolic
-        ),
-        weight=Weight(value=request.vitals.weight),
-        height=Height(value=request.vitals.height),
-        temperature=Temperature(value=request.vitals.temperature),
-        symptom=request.vitals.symptom,
-    )
-    return vitals
-
-
-def exam_to_vital_signs_vo(vital_signs: VitalSignsSchema) -> VitalSigns:
-    return VitalSigns(
-        blood_pressure=BloodPressure(
-            systolic=vital_signs.systolic, diastolic=vital_signs.diastolic
-        ),
-        weight=Weight(value=vital_signs.weight),
-        height=Height(value=vital_signs.height),
-        temperature=Temperature(value=vital_signs.temperature),
-        symptom=vital_signs.symptom,
-    )
-
-
-def _prepare_diagnostic_vo(diagnosis_payload: dict) -> Diagnosis:
-    # 🚩 เช็คเบื้องต้นก่อนส่งให้ Pydantic
-    if not diagnosis_payload or not diagnosis_payload.get("disease"):
-        raise MissingDiagnosisError()
-
-    try:
-        meds_data = diagnosis_payload.get("medicine_prescribed", [])
-        meds = [MedicineInfo(**m) for m in meds_data]
-
-        return Diagnosis(
-            disease=diagnosis_payload.get("disease"),
-            treatment=diagnosis_payload.get("treatment"),
-            medicine_prescribed=meds,
-        )
-    except (ValidationError, TypeError, ValueError) as e:
-        # พ่นเป็น Domain Error ออกไปแทน
-        raise MissingDiagnosisError(f"ข้อมูลวินิจฉัยไม่ถูกต้อง: {str(e)}")
