@@ -27,6 +27,9 @@ jobs:
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
 
     - name: Test with pytest
+      env:
+        SECRET_KEY: 'dummy_secret_key_for_testing_only'
+        ALGORITHM: 'HS256'
       run: |
         ruff check .
         black --check .
