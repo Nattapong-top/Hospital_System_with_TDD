@@ -3,7 +3,8 @@ from uuid import UUID
 
 from fastapi import APIRouter, HTTPException, Depends
 
-from api.schema import TriageRequest, _to_vital_signs_vo
+from api.schema import TriageRequest
+from api.mapper import _to_vital_signs_vo
 from domain.hospital_registry import HospitalRegistry
 from infrastructure.auth.jwt_service import get_current_staff
 

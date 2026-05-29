@@ -6,6 +6,7 @@ from api.schema import (
     StaffLoginResponse,
     RefreshTokenRequest,
     TokenRefreshResponse,
+    StaffRegisterResponse,
 )
 from domain.hospital_registry import HospitalRegistry
 from domain.value_object import StaffRole
@@ -21,8 +22,9 @@ router = APIRouter(prefix="/api/staff", tags=["Staff"])
 
 # 🚩 สังเกตตรงนี้! เปลี่ยนจาก @app.post เป็น @router.post
 # และตัดคำว่า /api/staff ออก (เพราะมันมีใน prefix แล้ว)
+
 @router.post("/register")
-def api_register_new_staff(request: RegisterStaffRequest):
+def api_register_new_staff(request: RegisterStaffRequest) -> StaffRegisterResponse:
     staff_service = HospitalRegistry.staff_service()
     try:
         staff_role = StaffRole[request.role.upper()]
@@ -42,16 +44,19 @@ def api_register_new_staff(request: RegisterStaffRequest):
         role=staff_role,
     )
 
-    return {
-        "staff_id": new_staff.staff_id,
-        "username": new_staff.username.id,
-        "first_name": new_staff.first_name.value,
-        "role": new_staff.role.value,
-        "is_active": new_staff.is_active,
-    }
+    # คืนค่าเป็น Object ของ Schema ให้ข้อมูลครบถ้วนสมจริง
+    return StaffRegisterResponse(
+        staff_id=new_staff.staff_id,
+        username=new_staff.username.id,
+        first_name=new_staff.first_name.value,
+        last_name=new_staff.last_name.value,
+        phone_number=new_staff.phone_number.value,
+        role=new_staff.role.value,
+        is_active=new_staff.is_active,
+    )
 
 
-@router.post("/login", response_model=StaffLoginResponse)
+@router.post("/login")
 def api_staff_login(login_request: StaffLoginRequest) -> StaffLoginResponse:
 
     staff_service = HospitalRegistry.staff_service()
@@ -69,12 +74,14 @@ def api_staff_login(login_request: StaffLoginRequest) -> StaffLoginResponse:
         staff_id=valid_login.staff_id,
         username=valid_login.username.id,
         first_name=valid_login.first_name.value,
+        last_name=valid_login.last_name.value,
+        phone_number=valid_login.phone_number.value,
         role=valid_login.role.value,
         is_active=valid_login.is_active,
     )
 
 
-@router.post("/refresh", response_model=TokenRefreshResponse)
+@router.post("/refresh")
 def refresh_access_token(request: RefreshTokenRequest) -> TokenRefreshResponse:
     payload = decode_refresh_token(request.refresh_token)
 
