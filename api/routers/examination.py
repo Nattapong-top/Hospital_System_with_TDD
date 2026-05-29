@@ -7,10 +7,10 @@ from api.schema import (
     ExamResponseSchema,
     ExamFinishResponseSchema,
     FinishRequestSchema,
-    to_diagnosis_vo,
     CancelResponseSchema,
     CancelRequestSchema,
 )
+from api.mapper import to_diagnosis_vo
 from domain.hospital_registry import HospitalRegistry
 
 examination_router = APIRouter(prefix="/api/examination", tags=["examination"])
