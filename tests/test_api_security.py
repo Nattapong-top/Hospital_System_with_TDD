@@ -39,3 +39,22 @@ def test_security_queues_issue_with_invalid_token_should_return_401(client):
     headers = {"Authorization": "Bearer fake_token_queues_123"}
     response = client.post("/api/queues/triage", headers=headers, json={})
     assert response.status_code == 401
+
+
+# ==========================================
+# ด่านที่ 3: ตึก Staff (ระบบพนักงาน)
+# ==========================================
+
+
+def test_security_staff_me_without_token_should_return_401(client):
+    """เทสต์ขอดูโปรไฟล์ตัวเอง มือเปล่า ต้องโดนเตะ 401"""
+    response = client.get("/api/staff/me")  # สังเกตว่าเป็น .get() นะครับ
+    assert response.status_code == 401
+    assert response.json()["detail"] == "Not authenticated"
+
+
+def test_security_staff_me_with_invalid_token_should_return_401(client):
+    """เทสต์ขอดูโปรไฟล์ตัวเอง บัตรปลอม ต้องโดนเตะ 401"""
+    headers = {"Authorization": "Bearer fake_token_staff_123"}
+    response = client.get("/api/staff/me", headers=headers)
+    assert response.status_code == 401
