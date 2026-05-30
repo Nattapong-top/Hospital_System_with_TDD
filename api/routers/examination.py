@@ -1,4 +1,4 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 import logging
 
 
@@ -12,6 +12,7 @@ from api.schema import (
 )
 from api.mapper import to_diagnosis_vo
 from domain.hospital_registry import HospitalRegistry
+from infrastructure.auth.jwt_service import RoleChecker
 
 examination_router = APIRouter(prefix="/api/examination", tags=["examination"])
 logger = logging.getLogger(__name__)
@@ -45,8 +46,15 @@ def start_examination(exam_request: ExamRequestSchema) -> ExamResponseSchema:
     )
 
 
+require_doctor = RoleChecker(["หมอ"])
+
+
 @examination_router.post("/finish")
-def finish_examination(finish_request: FinishRequestSchema) -> ExamFinishResponseSchema:
+@examination_router.post("/finish")
+def finish_examination(
+    finish_request: FinishRequestSchema,
+    current_staff: dict = Depends(require_doctor),
+) -> ExamFinishResponseSchema:
     logger.info("--> [API] มีคำสั่งเริ่มตรวจยิงเข้ามา!")
     logger.info(f"--> [API] ข้อมูลที่หน้าเว็บส่งมาใน payload คือ: {finish_request}")
 
