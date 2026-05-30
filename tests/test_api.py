@@ -2,6 +2,13 @@
 from datetime import date
 from uuid import uuid4
 
+import pytest
+
+from api.main import app
+from infrastructure.auth.jwt_service import get_current_staff
+
+pytestmark = pytest.mark.usefixtures("bypass_general_auth")
+
 
 def test_api_register_new_patient_should_return_success(client, valid_patient_payload):
     # 1. จำลองข้อมูล JSON ที่หน้าเว็บจะส่งมาให้ (เหมือนกรอกฟอร์ม)
@@ -119,6 +126,7 @@ def test_api_get_all_queues_today_should_return_list_all_queues_today(
 
 def test_api_staff_access_protected_route_without_token_should_401(client):
     # ไม่มีการแนบ headers={"Authorization": ...} เข้าไปเลย
+    app.dependency_overrides.pop(get_current_staff, None)
     response = client.get("/api/queues/today")
 
     assert response.status_code == 401
