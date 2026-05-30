@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 
 from api.schema import (
     RegisterStaffRequest,
@@ -14,6 +14,7 @@ from infrastructure.auth.jwt_service import (
     create_access_token,
     create_refresh_token,
     decode_refresh_token,
+    get_current_staff,
 )
 
 # สร้าง Router ประจำแผนก (prefix จะไปแปะหน้า URL ทุกตัวในไฟล์นี้)
@@ -57,7 +58,7 @@ def api_register_new_staff(request: RegisterStaffRequest) -> StaffRegisterRespon
     )
 
 
-@router.post("/login", response_model=StaffLoginResponse)
+@router.post("/login")
 def api_staff_login(login_request: StaffLoginRequest) -> StaffLoginResponse:
 
     staff_service = HospitalRegistry.staff_service()
@@ -82,7 +83,7 @@ def api_staff_login(login_request: StaffLoginRequest) -> StaffLoginResponse:
     )
 
 
-@router.post("/refresh", response_model=TokenRefreshResponse)
+@router.post("/refresh")
 def refresh_access_token(request: RefreshTokenRequest) -> TokenRefreshResponse:
     payload = decode_refresh_token(request.refresh_token)
 
@@ -95,3 +96,13 @@ def refresh_access_token(request: RefreshTokenRequest) -> TokenRefreshResponse:
         access_token=create_access_token(token_data),
         refresh_token=create_refresh_token(token_data),
     )
+
+
+@router.get("/me")
+def get_my_profile(current_staff: dict = Depends(get_current_staff)) -> dict:
+    """API สำหรับให้พนักงานดึงข้อมูลโปรไฟล์ของตัวเอง (ต้องใช้ Access Token)"""
+    return {
+        "staff_id": current_staff.get("staff_id"),
+        "role": current_staff.get("role"),
+        "username": current_staff.get("username"),
+    }
