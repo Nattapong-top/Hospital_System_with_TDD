@@ -8,12 +8,16 @@ from api.mapper import _to_vital_signs_vo
 from domain.hospital_registry import HospitalRegistry
 from infrastructure.auth.jwt_service import get_current_staff
 
-queues_router = APIRouter(prefix="/api/queues", tags=["Queues"])
+queues_router = APIRouter(
+    prefix="/api/queues",
+    tags=["Queues"],
+    dependencies=[Depends(get_current_staff)],
+)
 
 
 # 🚩 จุดที่ 1: ต้องเอา /today ไว้ข้างบน {queue_id} เสมอ!
 @queues_router.get("/today")
-def get_all_queues_today(current_staff=Depends(get_current_staff)) -> list:
+def get_all_queues_today() -> list:
     """เมนูสำหรับพยาบาล: ดูรายชื่อคิวทุกคนของวันนี้"""
     qs = HospitalRegistry.queue_service()
 
