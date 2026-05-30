@@ -1,6 +1,6 @@
 from uuid import UUID
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 
 from domain.custom_error import (
     InvalidStatusTransitionError,
@@ -9,8 +9,13 @@ from domain.custom_error import (
     InvalidCancelRequestError,
 )
 from domain.hospital_registry import HospitalRegistry
+from infrastructure.auth.jwt_service import get_current_staff
 
-consultation_router = APIRouter(prefix="/api/consultations", tags=["consultation"])
+consultation_router = APIRouter(
+    prefix="/api/consultations",
+    tags=["consultation"],
+    dependencies=[Depends(get_current_staff)],
+)
 
 
 @consultation_router.post("/{queue_id}/start")

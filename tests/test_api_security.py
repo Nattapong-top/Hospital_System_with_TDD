@@ -1,6 +1,7 @@
 # ==========================================
 # กลุ่มที่ 1: ลองของแบบมือเปล่า (ไม่มี Header Authorization) -> ต้องได้ 401
 # ==========================================
+import uuid
 
 
 def test_security_patient_register_without_token_should_return_401(client):
@@ -57,4 +58,16 @@ def test_security_staff_me_with_invalid_token_should_return_401(client):
     """เทสต์ขอดูโปรไฟล์ตัวเอง บัตรปลอม ต้องโดนเตะ 401"""
     headers = {"Authorization": "Bearer fake_token_staff_123"}
     response = client.get("/api/staff/me", headers=headers)
+    assert response.status_code == 401
+
+
+def test_security_consultation_without_token_should_return_401(client):
+    response = client.post(f"/api/consultations/{uuid.uuid4()}/start", json={})
+    assert response.status_code == 401
+    assert response.json()["detail"] == "Not authenticated"
+
+
+def test_security_consultation_invalid_token_should_return_401(client):
+    headers = {"Authorization": "Bearer fake_token_staff_123"}
+    response = client.post(f"/api/consultations/{uuid.uuid4()}/start", headers=headers)
     assert response.status_code == 401
