@@ -6,6 +6,9 @@ fix:
 	ruff check . --fix
 	black .
 
+status:
+	git status
+
 test:
 	pytest
 
@@ -22,3 +25,4 @@ all:
 	make check
 	make fix
 	make test
+	make status

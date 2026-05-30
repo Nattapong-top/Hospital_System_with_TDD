@@ -65,3 +65,26 @@ def get_current_staff(token: str = Depends(oauth2_scheme)):
             detail="Token ไม่ถูกต้องหรือหมดอายุแล้ว กรุณา login ใหม่ออีกครั้ง",
         )
     return payload
+
+
+class RoleChecker:
+    """
+    คลาสสำหรับตรวจสอบสิทธิ์ (RBAC)
+    รับรายชื่อ Role ที่อนุญาตให้ผ่านได้
+    """
+
+    def __init__(self, allowed_roles: list[str]):
+        self.allowed_roles = allowed_roles
+
+    def __call__(self, current_staff: dict = Depends(get_current_staff)):
+        # แกะ role ออกมาจาก Token ที่ get_current_staff อ่านไว้ให้
+        user_role = current_staff.get("role")
+
+        # ถ้า role ไม่อยู่ในรายชื่อที่อนุญาต ให้เตะออก 403 ทันที
+        if user_role not in self.allowed_roles:
+            raise HTTPException(
+                status_code=403,
+                detail=f"ไม่มีสิทธิ์เข้าถึง (Requires {', '.join(self.allowed_roles)} role)",
+            )
+
+        return current_staff

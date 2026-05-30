@@ -396,6 +396,23 @@ def payload_staff_doctor():
 
 
 @fixture
+def payload_staff_nurse():
+    payload = {
+        "username": "nurse_joy_api",
+        "password": "secure-password123",
+        "national_id": "1112223334445",
+        "first_name": "จอย",
+        "last_name": "ใจดี",
+        "dob_year": 1995,
+        "dob_month": 10,
+        "dob_day": 15,
+        "phone_number": "0899999999",
+        "role": "nurse",
+    }
+    return payload
+
+
+@fixture
 def diagnosis_payload(diagnosis):
     diagnosis_payload = {
         "disease": "ไข้หวัดใหญ่ สายพันธุ์ A",
@@ -454,6 +471,12 @@ def api_staff_doctor(client, payload_staff_doctor):
     # สมัครคนแรกเข้าทำงาน (ผ่านฉลุย)
     staff_doctor = client.post("/api/staff/register", json=payload_staff_doctor)
     return staff_doctor
+
+
+@fixture
+def api_staff_nurse(client, payload_staff_nurse):
+    staff_nurse = client.post("/api/staff/register", json=payload_staff_nurse)
+    return staff_nurse
 
 
 @fixture
