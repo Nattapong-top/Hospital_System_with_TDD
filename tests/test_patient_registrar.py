@@ -1,5 +1,5 @@
 # tests.test_patient_registrar
-
+import pytest
 from pydantic import ValidationError
 from pytest import raises
 
@@ -13,6 +13,8 @@ from domain.value_object import (
     PatientRights,
 )
 from tests.fake_repository.fake_repository import BrokenPatientRecord
+
+pytestmark = pytest.mark.usefixtures("bypass_general_auth")
 
 
 def test_registrar_patient_when_patient_valid(

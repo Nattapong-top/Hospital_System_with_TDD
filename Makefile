@@ -9,6 +9,9 @@ fix:
 status:
 	git status
 
+diff:
+	git diff
+
 test:
 	pytest
 
@@ -26,3 +29,4 @@ all:
 	make fix
 	make test
 	make status
+	make diff

@@ -6,6 +6,9 @@ from api.main import app
 
 # อ้างอิงตัวแปรยามที่ป๋าใช้ใน router (สมมติว่าประกาศไว้ที่ api.routers.examination)
 from api.routers.examination import require_doctor
+from infrastructure.auth.jwt_service import get_current_staff
+
+pytestmark = pytest.mark.usefixtures("bypass_general_auth")
 
 
 @pytest.fixture
@@ -246,6 +249,7 @@ def test_api_exam_should_not_allow_cancel_if_already_finished(
 def test_api_examination_finish_by_nurse_should_be_forbidden(
     client, api_staff_nurse, diagnosis_payload, api_new_queues
 ):
+    app.dependency_overrides.pop(get_current_staff, None)
     # 1. ให้ "พยาบาล" (NURSE) ล็อกอินเพื่อเอา Token
     nurse = api_staff_nurse.json()
     login_response = client.post(
@@ -286,6 +290,7 @@ def test_api_examination_finish_by_nurse_should_be_forbidden(
 def test_api_examination_finish_by_doctor_with_auth_should_success(
     client, api_staff_doctor, diagnosis_payload, api_new_queues
 ):
+    app.dependency_overrides.pop(get_current_staff, None)
     doctor = api_staff_doctor.json()
     login_response = client.post(
         "/api/staff/login",

@@ -2,6 +2,7 @@ import os
 import uuid
 from datetime import date, datetime
 
+import pytest
 from fastapi.testclient import TestClient
 from pytest import fixture
 
@@ -32,6 +33,8 @@ from domain.value_object import (
     Version,
     StaffRole,
 )
+
+
 from infrastructure.sqlite_consultation_repository import SqlConsultationRepository
 from tests.fake_repository.fake_repository import (
     FakeQueueRecord,
@@ -63,6 +66,26 @@ def setup_database():
         except PermissionError:
             # ถ้า Windows ล็อกไฟล์ไว้ ไม่ต้องตกใจครับ ปล่อยผ่านไปก่อน
             pass
+
+
+@pytest.fixture
+def bypass_general_auth():
+    """บัตรผ่าน VIP: พักงานยามหน้าตึก (ตึกคนไข้, ตึกคิว) สำหรับเทสต์เก่า"""
+
+    # 1. หลอกส่งข้อมูลพนักงานจำลองกลับไปให้เลย โดยไม่ต้องสนใจ Token
+    from api.main import app
+    from infrastructure.auth.jwt_service import get_current_staff
+
+    app.dependency_overrides[get_current_staff] = lambda: {
+        "staff_id": str(uuid.uuid4()),
+        "role": "STAFF",
+        "username": "test_staff",
+    }
+
+    yield  # ปล่อยให้เทสต์ทำงานไป
+
+    # 2. ทำงานเสร็จ คืนค่ายามตัวจริงกลับมาให้ระบบ
+    app.dependency_overrides.pop(get_current_staff, None)
 
 
 # =====================================================================
