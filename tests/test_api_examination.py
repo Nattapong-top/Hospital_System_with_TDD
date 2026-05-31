@@ -264,7 +264,11 @@ def test_api_examination_finish_by_nurse_should_be_forbidden(
         "staff_id": nurse["staff_id"],
     }
 
-    new_exam = client.post("/api/examination/start", json=exam_payload)
+    new_exam = client.post(
+        "/api/examination/start",
+        json=exam_payload,
+        headers={"Authorization": f"Bearer {token_str}"},
+    )
     assert new_exam.status_code == 200
 
     exam_data = new_exam.json()
@@ -304,7 +308,11 @@ def test_api_examination_finish_by_doctor_with_auth_should_success(
         "staff_id": doctor["staff_id"],
     }
 
-    new_exam = client.post("/api/examination/start", json=exam_payload)
+    new_exam = client.post(
+        "/api/examination/start",
+        json=exam_payload,
+        headers={"Authorization": f"Bearer {token_str}"},
+    )
     assert new_exam.status_code == 200
 
     exam_data = new_exam.json()

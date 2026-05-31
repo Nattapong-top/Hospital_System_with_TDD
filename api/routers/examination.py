@@ -12,9 +12,13 @@ from api.schema import (
 )
 from api.mapper import to_diagnosis_vo
 from domain.hospital_registry import HospitalRegistry
-from infrastructure.auth.jwt_service import RoleChecker
+from infrastructure.auth.jwt_service import RoleChecker, get_current_staff
 
-examination_router = APIRouter(prefix="/api/examination", tags=["examination"])
+examination_router = APIRouter(
+    prefix="/api/examination",
+    tags=["examination"],
+    dependencies=[Depends(get_current_staff)],
+)
 logger = logging.getLogger(__name__)
 
 
@@ -49,7 +53,6 @@ def start_examination(exam_request: ExamRequestSchema) -> ExamResponseSchema:
 require_doctor = RoleChecker(["หมอ"])
 
 
-@examination_router.post("/finish")
 @examination_router.post("/finish")
 def finish_examination(
     finish_request: FinishRequestSchema,
