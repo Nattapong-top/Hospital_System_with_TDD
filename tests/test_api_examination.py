@@ -1,36 +1,38 @@
 import uuid
 
-
 import pytest
+
 from api.main import app
 
 # อ้างอิงตัวแปรยามที่ป๋าใช้ใน router (สมมติว่าประกาศไว้ที่ api.routers.examination)
-from api.routers.examination import require_doctor
 from infrastructure.auth.jwt_service import get_current_staff
 
 pytestmark = pytest.mark.usefixtures("bypass_general_auth")
 
 
-@pytest.fixture
-def bypass_doctor_auth():
-    """Fixture สำหรับสั่งพักงานยามชั่วคราว ดึงข้อมูลหมอจำลองให้เลย"""
-    # 1. สั่งหลอก FastAPI ว่า ถ้าเจอ require_doctor ให้ข้ามไปเลย และคืนค่า dict นี้กลับไปแทน
-    app.dependency_overrides[require_doctor] = lambda: {
-        "role": "หมอ",
-        "staff_id": uuid.uuid4(),
-    }
-
-    yield  # ปล่อยให้เทสต์ทำงานไป
-
-    # 2. พอเทสต์ก้อนนี้ทำงานเสร็จปุ๊บ ล้างค่ายอมรับทั้งหมด เพื่อคืนค่ายามตัวจริงกลับมา
-    app.dependency_overrides.clear()
+# @pytest.fixture
+# def bypass_doctor_auth():
+#     """Fixture สำหรับสั่งพักงานยามชั่วคราว ดึงข้อมูลหมอจำลองให้เลย"""
+#     # 1. สั่งหลอก FastAPI ว่า ถ้าเจอ require_doctor ให้ข้ามไปเลย และคืนค่า dict นี้กลับไปแทน
+#     app.dependency_overrides[require_doctor] = lambda: {
+#         "role": "หมอ",
+#         "staff_id": uuid.uuid4(),
+#     }
+#
+#     yield  # ปล่อยให้เทสต์ทำงานไป
+#
+#     # 2. พอเทสต์ก้อนนี้ทำงานเสร็จปุ๊บ ล้างค่ายอมรับทั้งหมด เพื่อคืนค่ายามตัวจริงกลับมา
+#     app.dependency_overrides.clear()
 
 
 def test_api_examination_should_start_consultation_and_update_state_in_progress(
-    client, api_new_queues, api_staff_doctor, api_vitals
+    client, api_new_queues, api_staff_doctor, api_vitals, token_doctor
 ):
+    app.dependency_overrides.pop(get_current_staff, None)
     staff_id = api_staff_doctor.json()["staff_id"]
     queue_data = api_new_queues.json()
+    access_token = token_doctor.json()["access_token"]
+    headers = {"Authorization": f"Bearer {access_token}"}
 
     exam_payload = {
         "queue_id": queue_data["queue_id"],
@@ -39,7 +41,7 @@ def test_api_examination_should_start_consultation_and_update_state_in_progress(
         # "vital_signs": api_vitals,
     }
 
-    new_exam = client.post("/api/examination/start", json=exam_payload)
+    new_exam = client.post("/api/examination/start", json=exam_payload, headers=headers)
     assert new_exam.status_code == 200
     exam_data = new_exam.json()
     assert exam_data["queue_id"] == queue_data["queue_id"]
@@ -50,9 +52,9 @@ def test_api_examination_should_start_consultation_and_update_state_in_progress(
 
 
 def test_api_examination_when_not_found_staff_id_should_raise_error(
-    client, api_new_queues, api_vitals, bypass_doctor_auth
+    client, api_new_queues, api_vitals, token_doctor
 ):
-
+    app.dependency_overrides.pop(get_current_staff, None)
     staff_id = str(uuid.uuid4())
     queue_data = api_new_queues.json()
 
@@ -62,16 +64,22 @@ def test_api_examination_when_not_found_staff_id_should_raise_error(
         # "patient_id": queue_data["patient_id"],
         # "vital_signs": api_vitals,
     }
+    access_token = token_doctor.json()["access_token"]
+    headers = {"Authorization": f"Bearer {access_token}"}
 
-    not_found = client.post("/api/examination/start", json=not_found_staff_id)
+    not_found = client.post(
+        "/api/examination/start", json=not_found_staff_id, headers=headers
+    )
 
     assert not_found.status_code == 404
     assert "ไม่พบรหัสพนักงาน" == not_found.json()["detail"]
 
 
 def test_api_exam_when_not_found_queue_id_should_raise_error(
-    client, api_staff_doctor, api_vitals
+    client, api_staff_doctor, api_vitals, token_doctor
 ):
+
+    app.dependency_overrides.pop(get_current_staff, None)
     staff_id = api_staff_doctor.json()["staff_id"]
     queue_id = str(uuid.uuid4())
     queue_id_payload = {
@@ -80,14 +88,21 @@ def test_api_exam_when_not_found_queue_id_should_raise_error(
         # "patient_id": queue_id,
         # "vital_signs": api_vitals,
     }
-    not_found_queue_id = client.post("/api/examination/start", json=queue_id_payload)
+    access_token = token_doctor.json()["access_token"]
+    headers = {"Authorization": f"Bearer {access_token}"}
+    not_found_queue_id = client.post(
+        "/api/examination/start", json=queue_id_payload, headers=headers
+    )
+
     assert not_found_queue_id.status_code == 404
     assert "ไม่พบคิว" in not_found_queue_id.json()["detail"]
 
 
 def test_api_exam_should_finish_consul_and_update_state_complete_successfully(
-    client, api_staff_doctor, api_new_queues, diagnosis_payload, bypass_doctor_auth
+    client, api_staff_doctor, api_new_queues, diagnosis_payload, token_doctor
 ):
+
+    app.dependency_overrides.pop(get_current_staff, None)
     staff_id = api_staff_doctor.json()["staff_id"]
     queue_data = api_new_queues.json()
 
@@ -95,8 +110,10 @@ def test_api_exam_should_finish_consul_and_update_state_complete_successfully(
         "queue_id": queue_data["queue_id"],
         "staff_id": staff_id,
     }
+    access_token = token_doctor.json()["access_token"]
+    headers = {"Authorization": f"Bearer {access_token}"}
 
-    new_exam = client.post("/api/examination/start", json=exam_payload)
+    new_exam = client.post("/api/examination/start", json=exam_payload, headers=headers)
     assert new_exam.status_code == 200
 
     exam_data = new_exam.json()
@@ -107,7 +124,9 @@ def test_api_exam_should_finish_consul_and_update_state_complete_successfully(
         "diagnosis": diagnosis_payload,
     }
 
-    finished_exam = client.post("/api/examination/finish", json=finished_payload)
+    finished_exam = client.post(
+        "/api/examination/finish", json=finished_payload, headers=headers
+    )
 
     assert finished_exam.status_code == 200
     finished_data = finished_exam.json()
@@ -143,8 +162,10 @@ def test_api_exam_should_finish_consul_and_update_state_complete_successfully(
 
 
 def test_api_examination_should_cancel_consultation_successfully(
-    client, api_new_queues, api_staff_doctor
+    client, api_new_queues, api_staff_doctor, token_nurse
 ):
+
+    app.dependency_overrides.pop(get_current_staff, None)
     staff_id = api_staff_doctor.json()["staff_id"]
     queue_data = api_new_queues.json()
 
@@ -152,8 +173,9 @@ def test_api_examination_should_cancel_consultation_successfully(
         "queue_id": queue_data["queue_id"],
         "staff_id": staff_id,
     }
+    headers = {"Authorization": f'Bearer {token_nurse.json()["access_token"]}'}
 
-    new_exam = client.post("/api/examination/start", json=exam_payload)
+    new_exam = client.post("/api/examination/start", json=exam_payload, headers=headers)
     assert new_exam.status_code == 200
 
     exam_data = new_exam.json()
@@ -163,7 +185,9 @@ def test_api_examination_should_cancel_consultation_successfully(
         "consultation_id": exam_data["consultation_id"],
         "staff_id": staff_id,
     }
-    cancel_exam = client.post("/api/examination/cancel", json=canceled_payload)
+    cancel_exam = client.post(
+        "/api/examination/cancel", json=canceled_payload, headers=headers
+    )
     assert cancel_exam.status_code == 200
     canceled_data = cancel_exam.json()
     assert canceled_data["status"] == "ยกเลิกการตรวจ"
@@ -172,8 +196,10 @@ def test_api_examination_should_cancel_consultation_successfully(
 
 
 def test_api_exam_when_finish_with_not_found_consultation_id_should_raise_404(
-    client, api_staff_doctor, diagnosis_payload, bypass_doctor_auth
+    client, api_staff_doctor, diagnosis_payload, token_doctor
 ):
+    app.dependency_overrides.pop(get_current_staff, None)
+
     # 1. Arrange: เสก ID มั่วๆ ขึ้นมา
     fake_consultation_id = str(uuid.uuid4())
     staff_id = api_staff_doctor.json()["staff_id"]
@@ -183,9 +209,10 @@ def test_api_exam_when_finish_with_not_found_consultation_id_should_raise_404(
         "doctor_id": staff_id,
         "diagnosis": diagnosis_payload,
     }
+    headers = {"Authorization": f"Bearer {token_doctor.json()['access_token']}"}
 
     # 2. Act: ลองสั่งจบการตรวจ
-    res = client.post("/api/examination/finish", json=finished_payload)
+    res = client.post("/api/examination/finish", json=finished_payload, headers=headers)
 
     # 3. Assert: ต้องด่ากลับว่าไม่พบใบตรวจ
     assert res.status_code == 404
@@ -193,8 +220,11 @@ def test_api_exam_when_finish_with_not_found_consultation_id_should_raise_404(
 
 
 def test_api_exam_when_cancel_with_not_found_consultation_id_should_raise_404(
-    client, api_staff_doctor
+    client, api_staff_doctor, token_doctor
 ):
+
+    app.dependency_overrides.pop(get_current_staff, None)
+
     fake_consultation_id = str(uuid.uuid4())
     staff_id = api_staff_doctor.json()["staff_id"]
 
@@ -203,25 +233,40 @@ def test_api_exam_when_cancel_with_not_found_consultation_id_should_raise_404(
         "staff_id": staff_id,
     }
 
-    res = client.post("/api/examination/cancel", json=canceled_payload)
+    headers = {"Authorization": f"Bearer {token_doctor.json()['access_token']}"}
+
+    res = client.post("/api/examination/cancel", json=canceled_payload, headers=headers)
 
     assert res.status_code == 404
     assert "ไม่พบ" in res.json()["detail"]
 
 
 def test_api_exam_should_not_allow_cancel_if_already_finished(
-    client, api_staff_doctor, api_new_queues, diagnosis_payload, bypass_doctor_auth
+    client,
+    api_staff_doctor,
+    api_new_queues,
+    diagnosis_payload,
+    token_doctor,
+    token_nurse,
 ):
+
+    app.dependency_overrides.pop(get_current_staff, None)
+
     # 1. Arrange: ทำการ Start และ Finish ให้เสร็จสมบูรณ์ก่อน
     staff_id = api_staff_doctor.json()["staff_id"]
     queue_data = api_new_queues.json()
+
+    nures_staff = {"Authorization": f"Bearer {token_nurse.json()['access_token']}"}
 
     # Start
     start_res = client.post(
         "/api/examination/start",
         json={"queue_id": queue_data["queue_id"], "staff_id": staff_id},
+        headers=nures_staff,
     )
     exam_data = start_res.json()
+
+    doctor_staff = {"Authorization": f"Bearer {token_doctor.json()['access_token']}"}
 
     # Finish
     finish_res = client.post(
@@ -231,6 +276,7 @@ def test_api_exam_should_not_allow_cancel_if_already_finished(
             "doctor_id": staff_id,
             "diagnosis": diagnosis_payload,
         },
+        headers=doctor_staff,
     )
     assert finish_res.status_code == 200
 
@@ -239,7 +285,9 @@ def test_api_exam_should_not_allow_cancel_if_already_finished(
         "consultation_id": exam_data["consultation_id"],
         "staff_id": staff_id,
     }
-    cancel_res = client.post("/api/examination/cancel", json=canceled_payload)
+    cancel_res = client.post(
+        "/api/examination/cancel", json=canceled_payload, headers=nures_staff
+    )
 
     # 3. Assert: ระบบต้องด่าว่าทำไม่ได้ (ขึ้นอยู่กับว่าป๋าพ่น Exception 400 หรือ 422 ไว้ครับ)
     assert cancel_res.status_code == 400

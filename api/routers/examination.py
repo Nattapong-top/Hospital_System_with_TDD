@@ -21,9 +21,14 @@ examination_router = APIRouter(
 )
 logger = logging.getLogger(__name__)
 
+require_nure_and_doctor = RoleChecker(["หมอ", "พยาบาล"])
+
 
 @examination_router.post("/start")
-def start_examination(exam_request: ExamRequestSchema) -> ExamResponseSchema:
+def start_examination(
+    exam_request: ExamRequestSchema,
+    current_staff: dict = Depends(require_nure_and_doctor),
+) -> ExamResponseSchema:
     # 📸 จุดที่ 1: ติดกล้องดักฟังตอนของเพิ่งวิ่งมาถึงประตูห้องตรวจ
     logger.info("--> [API] มีคำสั่งเริ่มตรวจยิงเข้ามา!")
     logger.info(f"--> [API] ข้อมูลที่หน้าเว็บส่งมาใน payload คือ: {exam_request}")
@@ -86,8 +91,15 @@ def finish_examination(
     )
 
 
+require_nure_and_doctor = RoleChecker(["หมอ", "พยาบาล"])
+
+
 @examination_router.post("/cancel")
-def cancel_examination(cancel_request: CancelRequestSchema) -> CancelResponseSchema:
+def cancel_examination(
+    cancel_request: CancelRequestSchema,
+    current_staff: dict = Depends(require_nure_and_doctor),
+) -> CancelResponseSchema:
+
     logger.info("--> [API] มีคำสั่งยกเลิกการตรวจยิงเข้ามา!")
     logger.info(f"--> [API] ข้อมูลที่รับมาคือ: {cancel_request}")
 
