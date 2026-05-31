@@ -436,6 +436,23 @@ def payload_staff_nurse():
 
 
 @fixture
+def payload_staff_admin():
+    payload = {
+        "username": "admin_jone",
+        "password": "very_secure",
+        "national_id": "5552223334445",
+        "first_name": "จอน",
+        "last_name": "จัด",
+        "dob_year": 1995,
+        "dob_month": 10,
+        "dob_day": 15,
+        "phone_number": "0855555555",
+        "role": "admin",
+    }
+    return payload
+
+
+@fixture
 def diagnosis_payload(diagnosis):
     diagnosis_payload = {
         "disease": "ไข้หวัดใหญ่ สายพันธุ์ A",
@@ -503,8 +520,34 @@ def api_staff_nurse(client, payload_staff_nurse):
 
 
 @fixture
+def api_staff_admin(client, payload_staff_admin):
+    staff_admin = client.post("/api/staff/register", json=payload_staff_admin)
+    return staff_admin
+
+
+@fixture
 def token_doctor(client, api_staff_doctor):
     staff = api_staff_doctor.json()
     login_payload = {"username": staff["username"], "password": "password123"}
+    response = client.post("/api/staff/login", json=login_payload)
+    return response
+
+
+@fixture
+def token_nurse(client, api_staff_nurse):
+    login_payload = {
+        "username": api_staff_nurse.json()["username"],
+        "password": "secure-password123",
+    }
+    response = client.post("/api/staff/login", json=login_payload)
+    return response
+
+
+@fixture
+def token_admin(client, api_staff_admin):
+    login_payload = {
+        "username": api_staff_admin.json()["username"],
+        "password": "very_secure",
+    }
     response = client.post("/api/staff/login", json=login_payload)
     return response

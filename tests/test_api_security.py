@@ -137,3 +137,38 @@ def test_security_examination_cancel_with_invalid_token_should_return_401(client
         response.json()["detail"]
         == "Token ไม่ถูกต้องหรือหมดอายุแล้ว กรุณา login ใหม่ออีกครั้ง"
     )
+
+
+# ==========================================
+# กลุ่มที่ 3: ลองของด้วย มั่วสิทธิ -> ต้องได้ 403
+# ==========================================
+
+
+def test_security_examination_finish_with_nurse_token_should_return_403(
+    client, token_nurse
+):
+
+    access_token = token_nurse.json()["access_token"]
+    headers = {"Authorization": f"Bearer {access_token}"}
+    response = client.post("/api/examination/finish", headers=headers)
+    assert response.status_code == 403
+
+
+def test_security_examination_start_with_admin_token_should_return_403(
+    client, token_admin
+):
+
+    access_token = token_admin.json()["access_token"]
+    headers = {"Authorization": f"Bearer {access_token}"}
+    response = client.post("/api/examination/start", headers=headers)
+    assert response.status_code == 403
+
+
+def test_security_examination_cancel_with_admin_token_should_return_403(
+    client, token_admin
+):
+
+    access_token = token_admin.json()["access_token"]
+    headers = {"Authorization": f"Bearer {access_token}"}
+    response = client.post("/api/examination/cancel", headers=headers)
+    assert response.status_code == 403
