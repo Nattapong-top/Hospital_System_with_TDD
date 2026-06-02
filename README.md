@@ -7,9 +7,94 @@
 ---
 
 ## 🚀 สถานะโครงการ (Project Status)
-- **Total Tests:** 210+ Passed (ครอบคลุม Unit, Integration, Repository และ API)
+- **Total Tests:** 249 Passed (ครอบคลุม Unit, Integration, Repository และ API)
 - **Architecture:** Clean Architecture / Layered Architecture
 - **API Framework:** FastAPI พร้อมระบบจัดการ Lifespan และการเชื่อมต่อฐานข้อมูลอัตโนมัติ
+- **Authentication:** JWT Login + Refresh Token พร้อมระบบ RBAC (Role-Based Access Control)
+
+---
+
+## 🔄 การทำงานของระบบ (System Workflow)
+
+### ขั้นตอนการให้บริการผู้ป่วย (Patient Service Flow)
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                     HOSPITAL PATIENT FLOW                           │
+└─────────────────────────────────────────────────────────────────────┘
+
+  👤 ผู้ป่วยมาโรงพยาบาล
+        │
+        ▼
+┌───────────────────┐
+│  พยาบาลทะเบียน   │  ← RBAC: NURSE / RECEPTIONIST
+│  ลงทะเบียนคนไข้  │     PatientRegistrar.register_patient()
+│  (ตรวจสอบซ้ำ)    │     ✦ ห้ามซ้ำ NationalID
+└────────┬──────────┘
+         │
+         ▼
+┌───────────────────┐
+│  วัดสัญญาณชีพ    │  ← พยาบาลกรอก VitalSigns
+│  (Vital Signs)   │     • Blood Pressure
+│                  │     • Weight / Height
+│                  │     • Temperature
+└────────┬──────────┘
+         │  ✦ บังคับกรอกครบก่อนออกคิว
+         ▼
+┌───────────────────┐
+│   ออกเลขคิว      │  ← QueueService.create_queue()
+│  (Issue Queue)   │     • รีเซ็ตเลขคิวทุกวัน
+│                  │     • ห้ามจองซ้ำในวันเดียวกัน
+└────────┬──────────┘
+         │
+         ▼
+   ┌─────────────┐
+   │   WAITING   │  ◄── สถานะเริ่มต้น "รอ"
+   └──────┬──────┘
+          │  พยาบาล หรือ หมอ กด "เรียกคนไข้เข้าพบ"
+          │  QueueService.start_consultation()
+          ▼              RBAC: NURSE / DOCTOR
+   ┌─────────────┐
+   │ IN_PROGRESS │  ──── "กำลังพบหมอ"
+   └──────┬──────┘
+          │  หมอกด "บันทึกผลการตรวจ"
+          │  ExaminationService.complete_examination()
+          ▼              RBAC: DOCTOR เท่านั้น
+   ┌─────────────┐
+   │  COMPLETED  │  ──── "ตรวจเสร็จแล้ว" ✅
+   └─────────────┘
+
+   ┌─────────────┐
+   │  CANCELLED  │  ──── "ยกเลิกการตรวจ" ❌
+   └─────────────┘  (ยกเลิกได้จาก WAITING และ IN_PROGRESS เท่านั้น)
+```
+
+### การเปลี่ยนสถานะคิว (Queue Status Transition)
+
+```
+                    ┌──────────────────────────────────────┐
+                    │         QueueStatus Transitions       │
+                    └──────────────────────────────────────┘
+
+   WAITING ──────────────────────────────────► CANCELLED
+     │                                        (ยกเลิกก่อนพบหมอ)
+     │ start_consultation()
+     │ [NURSE / DOCTOR]
+     ▼
+ IN_PROGRESS ────────────────────────────────► CANCELLED
+     │                                        (ยกเลิกระหว่างพบหมอ)
+     │ complete_examination()
+     │ [DOCTOR only]
+     ▼
+ COMPLETED  (ยกเลิกไม่ได้)
+```
+
+| สถานะ | ค่า | ผู้มีสิทธิ์เปลี่ยน | เปลี่ยนได้จากสถานะ |
+|---|---|---|---|
+| `WAITING` | `"รอ"` | ระบบ (อัตโนมัติ) | — (สถานะเริ่มต้น) |
+| `IN_PROGRESS` | `"กำลังพบหมอ"` | NURSE, DOCTOR | WAITING |
+| `COMPLETED` | `"ตรวจเสร็จแล้ว"` | DOCTOR | IN_PROGRESS |
+| `CANCELLED` | `"ยกเลิกการตรวจ"` | NURSE, DOCTOR | WAITING, IN_PROGRESS |
 
 ---
 
@@ -30,25 +115,8 @@
 
 ### 3. Infrastructure Layer (ชั้นเชื่อมต่อระบบภายนอก)
 - **Database:** SQLite สำหรับการใช้งานจริง และ In-Memory สำหรับการทดสอบ
-- **Repository:** `SqlPatientRepository`, `SqlQueueRepository`, `SqlStaffRepository`
+- **Repository:** `SqlPatientRepository`, `SqlQueueRepository`, `SqlStaffRepository`, `SqlConsultationRepository`
 - **Registry:** `HospitalRegistry` ทำหน้าที่จัดการ Dependency Injection ทั้งระบบ
-
----
-
-## 📖 คู่มือระบบ: โดเมนพนักงาน (Staff Domain Guide)
-ระบบจัดการพนักงานถูกออกแบบโดยเน้นความถูกต้องและปลอดภัยของข้อมูล มีการแบ่งหน้าที่ดังนี้:
-
-**ระดับ Domain (`staff_entities.py`)**
-- `Staff.register()`: รับข้อมูลตั้งต้น เข้ารหัสผ่าน (`HashedPassword`) และกำหนดสถานะการทำงาน
-- `Staff.__setattr__()`: ป้องกันการแก้ไขตัวแปรที่ไม่อนุญาตให้เปลี่ยนแปลง เช่น `staff_id` และ `national_id`
-- `Staff.suspend()` / `reactivate()`: ระงับและคืนสิทธิ์การใช้งาน พร้อมระบบ `version` สำหรับจัดการการแก้ไขข้อมูลพร้อมกัน (Optimistic Concurrency Control)
-
-**ระดับ Service (`staff_service.py`)**
-- `register_staff()`: ตรวจสอบความซ้ำซ้อนของชื่อผู้ใช้ (Username) ก่อนสร้างข้อมูลพนักงานใหม่
-- `authenticate_staff()`: ตรวจสอบสถานะบัญชีและยืนยันรหัสผ่านเพื่อเข้าสู่ระบบ (Login)
-
-**ระดับ API (`staff.py`)**
-- ตรวจสอบความถูกต้องของข้อมูล (Schema Validation) ผ่าน Pydantic และแปลงรูปแบบข้อมูลให้ตรงกับระบบก่อนส่งให้ Service ดำเนินการ
 
 ---
 
