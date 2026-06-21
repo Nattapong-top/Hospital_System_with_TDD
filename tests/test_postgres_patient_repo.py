@@ -3,7 +3,7 @@ import psycopg
 from uuid import uuid4
 from testcontainers.postgres import PostgresContainer
 
-from domain.custom_error import ConcurrentUpdateError
+from domain.custom_error import ConcurrentUpdateError, DuplicateNationalIDError
 from domain.entities import Patient
 from domain.value_object import (
     NationalID,
@@ -146,3 +146,21 @@ def test_update_patient_raise_concurrent_update_error_when_old_version(
         repo.update(dummy_patient)
 
     assert "อัปเดตข้อมูลไป" in str(exc_info.value)
+
+
+def test_get_by_national_id_not_found_should_return_none(db_connection):
+    repo = PostgresPatientRepository(db_connection)
+    result = repo.get_by_national_id(NationalID(id="1111111111111"))
+    assert result is None
+
+
+def test_save_duplicate_national_id_should_raise_error(db_connection, dummy_patient):
+    repo = PostgresPatientRepository(db_connection)
+    repo.save(dummy_patient)
+
+    patient_with_same_nid = dummy_patient.model_copy(update={"id": uuid4()})
+
+    with pytest.raises(DuplicateNationalIDError) as e:
+        repo.save(patient_with_same_nid)
+
+    assert "เลขบัตรประชาชนนี้มีในระบบแล้ว" in str(e.value)
