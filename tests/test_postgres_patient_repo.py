@@ -3,6 +3,7 @@ import psycopg
 from uuid import uuid4
 from testcontainers.postgres import PostgresContainer
 
+from domain.custom_error import ConcurrentUpdateError
 from domain.entities import Patient
 from domain.value_object import (
     NationalID,
@@ -111,3 +112,37 @@ def test_get_patient_national_id_successfully(db_connection, dummy_patient):
     assert retrieved_patient.id == dummy_patient.id
     assert retrieved_patient.national_id.id == "1234567890123"
     assert retrieved_patient.first_name.value == "สมชาย"
+
+
+def test_update_patient_first_name_successfully(db_connection, dummy_patient):
+    repo = PostgresPatientRepository(db_connection)
+    repo.save(dummy_patient)
+
+    dummy_patient.update_first_name(Name(value="สมปอง"))
+
+    repo.update(dummy_patient)
+    updated_patient = repo.get_by_national_id(dummy_patient.national_id)
+
+    assert updated_patient is not None
+    assert updated_patient.national_id == dummy_patient.national_id
+    assert updated_patient.first_name.value == "สมปอง"
+    assert updated_patient.version.number == 2
+
+
+def test_update_patient_raise_concurrent_update_error_when_old_version(
+    db_connection, dummy_patient
+):
+    repo = PostgresPatientRepository(db_connection)
+    repo.save(dummy_patient)
+
+    nurse_a = repo.get_by_national_id(dummy_patient.national_id)
+    if nurse_a:
+        nurse_a.update_first_name(Name(value="พยาบาลเอ"))
+        repo.update(nurse_a)
+
+    dummy_patient.update_first_name(Name(value="พยาบาลบี"))
+
+    with pytest.raises(ConcurrentUpdateError) as exc_info:
+        repo.update(dummy_patient)
+
+    assert "อัปเดตข้อมูลไป" in str(exc_info.value)

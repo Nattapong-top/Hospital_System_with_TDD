@@ -1,6 +1,7 @@
 import psycopg
 from psycopg.rows import dict_row
 
+from domain.custom_error import ConcurrentUpdateError
 from domain.entities import Patient
 from domain.interfaces import PatientRecord  # เรียกใช้ Interface เดิมจาก Domain
 from domain.value_object import (
@@ -46,10 +47,23 @@ class PostgresPatientRepository(PatientRecord):
     """
 
     _SELECT_BY_NATIONAL_ID_QUERY = """
-            SELECT id, national_id, first_name, last_name, phone_number,
+        SELECT id, national_id, first_name, last_name, phone_number,
             date_of_birth, registered_address, current_address, rights, version 
             FROM patient WHERE national_id = %s;
             """
+
+    _UPDATE_PATIENT_QUERY = """
+        UPDATE patient 
+            SET first_name = %s,
+                last_name = %s,
+                phone_number = %s,
+                date_of_birth = %s,
+                registered_address = %s,
+                current_address = %s,
+                rights = %s,
+                version = %s
+            WHERE id = %s AND version = %s;
+    """
 
     def __init__(self, connection: psycopg.Connection) -> None:
         self.connection = connection
@@ -113,4 +127,27 @@ class PostgresPatientRepository(PatientRecord):
         )
 
     def update(self, patient: Patient) -> None:
-        pass
+        current_version = patient.version.number
+        old_version = current_version - 1
+
+        values = (
+            patient.first_name.value,
+            patient.last_name.value,
+            patient.phone_number.value,
+            patient.date_of_birth.model_dump_json(),
+            patient.registered_address.model_dump_json(),
+            patient.current_address.model_dump_json(),
+            patient.rights.rights_type.value,
+            current_version,
+            patient.id,
+            old_version,
+        )
+
+        with self.connection.cursor() as cur:
+            cur.execute(self._UPDATE_PATIENT_QUERY, values)
+
+            if cur.rowcount == 0:
+                self.connection.rollback()
+                raise ConcurrentUpdateError()
+
+        self.connection.commit()
