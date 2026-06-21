@@ -1,7 +1,8 @@
 import psycopg
+from psycopg.errors import UniqueViolation
 from psycopg.rows import dict_row
 
-from domain.custom_error import ConcurrentUpdateError
+from domain.custom_error import ConcurrentUpdateError, DuplicateNationalIDError
 from domain.entities import Patient
 from domain.interfaces import PatientRecord  # เรียกใช้ Interface เดิมจาก Domain
 from domain.value_object import (
@@ -88,9 +89,19 @@ class PostgresPatientRepository(PatientRecord):
             patient.version.number,
         )
 
-        with self.connection.cursor() as cur:
-            cur.execute(self._INSERT_PATIENT_QUERY, values)
-        self.connection.commit()
+        try:
+            with self.connection.cursor() as cur:
+                cur.execute(self._INSERT_PATIENT_QUERY, values)
+            self.connection.commit()
+
+        except UniqueViolation:
+            # กฎเหล็ก Postgres: ถ้าเกิด Error ใน Transaction ต้อง Rollback ก่อนเสมอ!
+            self.connection.rollback()
+
+            # แปลงร่าง Database Error ให้กลายเป็น Domain Error
+            raise DuplicateNationalIDError(
+                f"เลขบัตรประชาชนนี้มีในระบบแล้ว: {patient.national_id.id}"
+            )
 
     def get_by_national_id(self, national_id: NationalID) -> Patient | None:
 
