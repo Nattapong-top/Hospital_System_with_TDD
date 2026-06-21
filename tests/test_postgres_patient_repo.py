@@ -98,3 +98,16 @@ def test_save_new_patient_successfully(db_connection, dummy_patient):
     assert result is not None, "ต้องเจอข้อมูลใน Database"
     assert result[1] == "1234567890123"
     assert result[2] == "สมชาย"
+
+
+def test_get_patient_national_id_successfully(db_connection, dummy_patient):
+    repo = PostgresPatientRepository(db_connection)
+    repo.save(dummy_patient)
+
+    target_national_id = NationalID(id="1234567890123")
+    retrieved_patient = repo.get_by_national_id(target_national_id)
+
+    assert retrieved_patient is not None
+    assert retrieved_patient.id == dummy_patient.id
+    assert retrieved_patient.national_id.id == "1234567890123"
+    assert retrieved_patient.first_name.value == "สมชาย"

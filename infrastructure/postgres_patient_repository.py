@@ -1,6 +1,18 @@
 import psycopg
+from psycopg.rows import dict_row
+
 from domain.entities import Patient
 from domain.interfaces import PatientRecord  # เรียกใช้ Interface เดิมจาก Domain
+from domain.value_object import (
+    NationalID,
+    Name,
+    PhoneNumber,
+    DateOfBirth,
+    Address,
+    Rights,
+    Version,
+    PatientRights,
+)
 
 
 class PostgresPatientRepository(PatientRecord):
@@ -33,6 +45,12 @@ class PostgresPatientRepository(PatientRecord):
         );
     """
 
+    _SELECT_BY_NATIONAL_ID_QUERY = """
+            SELECT id, national_id, first_name, last_name, phone_number,
+            date_of_birth, registered_address, current_address, rights, version 
+            FROM patient WHERE national_id = %s;
+            """
+
     def __init__(self, connection: psycopg.Connection) -> None:
         self.connection = connection
 
@@ -60,8 +78,39 @@ class PostgresPatientRepository(PatientRecord):
             cur.execute(self._INSERT_PATIENT_QUERY, values)
         self.connection.commit()
 
-    def get_by_national_id(self, national_id: int) -> Patient:
-        pass
+    def get_by_national_id(self, national_id: NationalID) -> Patient | None:
+
+        with self.connection.cursor(row_factory=dict_row) as cur:
+            cur.execute(self._SELECT_BY_NATIONAL_ID_QUERY, (national_id.id,))
+            row_patient = cur.fetchone()
+
+        if not row_patient:
+            return None
+
+        return Patient(
+            id=row_patient["id"],
+            national_id=NationalID(id=row_patient["national_id"]),
+            first_name=Name(value=row_patient["first_name"]),
+            last_name=Name(value=row_patient["last_name"]),
+            phone_number=PhoneNumber(value=row_patient["phone_number"]),
+            date_of_birth=(
+                DateOfBirth.model_validate(row_patient["date_of_birth"])
+                if isinstance(row_patient["date_of_birth"], dict)
+                else DateOfBirth.model_validate_json(row_patient["date_of_birth"])
+            ),
+            registered_address=(
+                Address.model_validate(row_patient["registered_address"])
+                if isinstance(row_patient["registered_address"], dict)
+                else Address.model_validate_json(row_patient["registered_address"])
+            ),
+            current_address=(
+                Address.model_validate(row_patient["current_address"])
+                if isinstance(row_patient["current_address"], dict)
+                else Address.model_validate_json(row_patient["current_address"])
+            ),
+            rights=Rights(rights_type=PatientRights(row_patient["rights"])),
+            version=Version(number=row_patient["version"]),
+        )
 
     def update(self, patient: Patient) -> None:
         pass
