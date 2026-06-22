@@ -1,6 +1,8 @@
 import os
 
+import psycopg
 from pytest import fixture
+from testcontainers.postgres import PostgresContainer
 
 from domain.hospital_registry import HospitalRegistry
 
@@ -28,3 +30,55 @@ def setup_database():
         except PermissionError:
             # ถ้า Windows ล็อกไฟล์ไว้ ไม่ต้องตกใจครับ ปล่อยผ่านไปก่อน
             pass
+
+
+# 💡 เปลี่ยนจาก scope="module" เป็น scope="session"
+@fixture(scope="session")
+def postgres_container():
+    """
+    สร้าง PostgreSQL Container แค่ '1 ครั้งต่อการรันเทสต์ทั้งโปรเจค' (session)
+    """
+    with PostgresContainer("postgres:16-alpine") as postgres:
+        yield postgres
+
+
+@fixture
+def db_connection(postgres_container):
+    """
+    จ่ายท่อ Connection ที่สะอาดให้แต่ละ Test (ฟังก์ชันนี้รันใหม่ทุก Test)
+    """
+    raw_url = postgres_container.get_connection_url()
+    db_url = raw_url.replace("+psycopg2", "")
+
+    with psycopg.connect(db_url) as conn:
+        yield conn
+        # (เมื่อ Test จบ จะกลับมาทำลาย Connection อัตโนมัติ เพราะใช้ with)
+
+
+@fixture
+def pg_patient_table(db_connection):  # <--- เรียกใช้ db_connection ส่วนกลางได้เลย!
+    """Fixture สร้างตาราง Patient ใน Postgres เฉพาะสำหรับไฟล์เทสต์นี้"""
+    _CREATE_PATIENT_TABLE_QUERY = """
+        CREATE TABLE IF NOT EXISTS patient (
+            id UUID PRIMARY KEY,
+            national_id VARCHAR(13) UNIQUE NOT NULL,
+            first_name VARCHAR(100) NOT NULL,
+            last_name VARCHAR(100) NOT NULL,
+            phone_number VARCHAR(20) NOT NULL,
+            date_of_birth JSONB NOT NULL,
+            registered_address JSONB NOT NULL,
+            current_address JSONB NOT NULL,
+            rights VARCHAR(50) NOT NULL,
+            version INTEGER DEFAULT 1
+        );
+    """
+    with db_connection.cursor() as cur:
+        cur.execute(_CREATE_PATIENT_TABLE_QUERY)
+    db_connection.commit()
+
+    yield db_connection
+
+    # ล้างตาราง (DROP/TRUNCATE) ทิ้งหลังเทสต์คิวเสร็จ เพื่อไม่ให้ขยะไปกวนเทสต์อื่น
+    with db_connection.cursor() as cur:
+        cur.execute("DROP TABLE IF EXISTS patient;")
+    db_connection.commit()

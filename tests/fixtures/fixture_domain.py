@@ -141,6 +141,34 @@ def patient(current_address, registered_address):
 
 
 @fixture
+def dummy_patient() -> Patient:
+    """สร้าง Mock Data ของ Patient สำหรับใช้ใน Test"""
+    return Patient(
+        id=uuid.uuid4(),
+        national_id=NationalID(id="1234567890123"),
+        first_name=Name(value="สมชาย"),
+        last_name=Name(value="ใจดี"),
+        phone_number=PhoneNumber(value="0812345678"),
+        date_of_birth=DateOfBirth(day=1, month=1, year=1990),
+        registered_address=Address(
+            house_number="123",
+            sub_district="บางกะปิ",
+            district="บางกะปิ",
+            province=Province.BANGKOK,
+            postal_code="10240",
+        ),
+        current_address=Address(
+            house_number="123",
+            sub_district="บางกะปิ",
+            district="บางกะปิ",
+            province=Province.BANGKOK,
+            postal_code="10240",
+        ),
+        rights=Rights(rights_type=PatientRights.GOLD_CARD),
+    )
+
+
+@fixture
 def new_queue(queue_service, patient, vital_signs, today_date):
     return queue_service.issue_new_queue(
         patient_id=patient.id,
