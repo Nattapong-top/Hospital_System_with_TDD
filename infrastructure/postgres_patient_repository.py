@@ -23,20 +23,6 @@ class PostgresPatientRepository(PatientRecord):
     """
 
     # --- SQL Constants: รวม SQL ไว้ที่เดียว ---
-    _CREATE_SCHEMA_QUERY = """
-        CREATE TABLE IF NOT EXISTS patient (
-            id UUID PRIMARY KEY,
-            national_id VARCHAR(13) UNIQUE NOT NULL,
-            first_name VARCHAR(100) NOT NULL,
-            last_name VARCHAR(100) NOT NULL,
-            phone_number VARCHAR(20) NOT NULL,
-            date_of_birth JSONB NOT NULL,
-            registered_address JSONB NOT NULL,
-            current_address JSONB NOT NULL,
-            rights VARCHAR(50) NOT NULL,
-            version INTEGER DEFAULT 1
-        );
-    """
 
     _INSERT_PATIENT_QUERY = """
         INSERT INTO patient (
@@ -68,12 +54,6 @@ class PostgresPatientRepository(PatientRecord):
 
     def __init__(self, connection: psycopg.Connection) -> None:
         self.connection = connection
-
-    def create_schema(self) -> None:
-        """สร้างตารางสำหรับใช้ใน Test (Production ควรใช้ Migration Tool)"""
-        with self.connection.cursor() as cur:
-            cur.execute(self._CREATE_SCHEMA_QUERY)
-        self.connection.commit()
 
     def save(self, patient: Patient) -> None:
         values = (
