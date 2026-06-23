@@ -82,3 +82,38 @@ def pg_patient_table(db_connection):  # <--- เรียกใช้ db_connect
     with db_connection.cursor() as cur:
         cur.execute("DROP TABLE IF EXISTS patient;")
     db_connection.commit()
+
+
+@fixture
+def pg_queue_table(db_connection):  # <--- เรียกใช้ db_connection ส่วนกลางได้เลย!
+    """Fixture สร้างตาราง Patient ใน Postgres เฉพาะสำหรับไฟล์เทสต์นี้"""
+    _CREATE_QUEUE_TABLE_QUERY = """
+        CREATE TABLE IF NOT EXISTS queue (
+            q_id UUID PRIMARY KEY, 
+            p_id UUID NOT NULL, 
+            p_num INTEGER NOT NULL,
+            q_date TEXT NOT NULL, 
+            status TEXT NOT NULL, 
+            ver INTEGER DEFAULT 1,
+            bp_sys INTEGER, 
+            bp_dia INTEGER, 
+            w_kg REAL, 
+            h_cm REAL, 
+            temp_c REAL,
+            symptom TEXT, 
+            diag_disease TEXT, 
+            diag_treatment TEXT, 
+            diag_meds TEXT
+        )
+    """
+
+    with db_connection.cursor() as cur:
+        cur.execute(_CREATE_QUEUE_TABLE_QUERY)
+    db_connection.commit()
+
+    yield db_connection
+
+    # ล้างตาราง (DROP/TRUNCATE) ทิ้งหลังเทสต์คิวเสร็จ เพื่อไม่ให้ขยะไปกวนเทสต์อื่น
+    with db_connection.cursor() as cur:
+        cur.execute("DROP TABLE IF EXISTS patient;")
+    db_connection.commit()
