@@ -45,6 +45,13 @@ class PostgresQueueRepository(QueueRecord):
 
     _SELECT_BY_ID_QUERY: LiteralString = "SELECT * FROM queue WHERE q_id = %s"
 
+    _SELECT_LAST_QUEUE_QUERY: LiteralString = """
+        SELECT * FROM queue 
+            WHERE q_date = %s
+            ORDER BY p_num DESC
+            LIMIT 1
+    """
+
     def __init__(self, connection: psycopg.Connection):
         self.connection = connection
 
@@ -207,8 +214,21 @@ class PostgresQueueRepository(QueueRecord):
 
         self.connection.commit()
 
-    def get_last_queue(self) -> Optional[Queue]:
-        pass
+    def get_last_queue(self) -> Queue | None:
+        """ดึงคิวล่าสุดของ 'วันนี้' เพื่อนำไปคำนวณเลขคิวถัดไป"""
+
+        today = date.today()
+
+        with self.connection.cursor(row_factory=dict_row) as cursor:
+            # โยนวันที่วันนี้เข้าไปค้นหา
+            cursor.execute(self._SELECT_LAST_QUEUE_QUERY, (today,))
+            row = cursor.fetchone()
+
+        if not row:
+            return None
+
+        # 🌟 เราให้ Helper ประกอบร่างจบเลย ไม่ต้องเขียนใหม่!
+        return self._map_row_to_entity(row)
 
     def find_active_queue_by_patient(
         self, patient_id: UUID, queue_date: date
