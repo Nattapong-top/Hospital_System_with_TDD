@@ -1,4 +1,5 @@
 import os
+from typing import LiteralString
 
 import psycopg
 from pytest import fixture
@@ -85,25 +86,25 @@ def pg_patient_table(db_connection):  # <--- เรียกใช้ db_connect
 
 
 @fixture
-def pg_queue_table(db_connection):  # <--- เรียกใช้ db_connection ส่วนกลางได้เลย!
-    """Fixture สร้างตาราง Patient ใน Postgres เฉพาะสำหรับไฟล์เทสต์นี้"""
-    _CREATE_QUEUE_TABLE_QUERY = """
+def pg_queue_table(db_connection):
+    """Fixture สร้างตาราง Queue ใน Postgres (ปรับ Types ให้เป็น Postgres แท้ๆ)"""
+    _CREATE_QUEUE_TABLE_QUERY: LiteralString = """
         CREATE TABLE IF NOT EXISTS queue (
             q_id UUID PRIMARY KEY, 
             p_id UUID NOT NULL, 
             p_num INTEGER NOT NULL,
-            q_date TEXT NOT NULL, 
-            status TEXT NOT NULL, 
+            q_date DATE NOT NULL,          -- 🌟 เปลี่ยนเป็น DATE
+            status VARCHAR(50) NOT NULL,   -- 🌟 เปลี่ยนเป็น VARCHAR
             ver INTEGER DEFAULT 1,
             bp_sys INTEGER, 
             bp_dia INTEGER, 
-            w_kg REAL, 
-            h_cm REAL, 
-            temp_c REAL,
+            w_kg NUMERIC(5,2),             -- 🌟 เปลี่ยนเป็น NUMERIC แทน REAL (แม่นยำกว่า)
+            h_cm NUMERIC(5,2),             -- 🌟 เปลี่ยนเป็น NUMERIC
+            temp_c NUMERIC(4,2),           -- 🌟 เปลี่ยนเป็น NUMERIC
             symptom TEXT, 
             diag_disease TEXT, 
             diag_treatment TEXT, 
-            diag_meds TEXT
+            diag_meds JSONB                -- 🌟 เปลี่ยนเป็น JSONB ท่าไม้ตายของ Postgres!
         )
     """
 
