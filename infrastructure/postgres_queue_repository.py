@@ -1,5 +1,5 @@
 from datetime import date
-from typing import Optional, List, LiteralString, Any
+from typing import List, LiteralString, Any
 from uuid import UUID
 
 import psycopg
@@ -49,6 +49,14 @@ class PostgresQueueRepository(QueueRecord):
         SELECT * FROM queue 
             WHERE q_date = %s
             ORDER BY p_num DESC
+            LIMIT 1
+    """
+
+    _SELECT_ACTIVE_QUEUE_QUERY: LiteralString = """
+        SELECT * FROM queue 
+            WHERE p_id = %s
+                AND  q_date = %s
+                AND status NOT IN (%s, %s) 
             LIMIT 1
     """
 
@@ -230,10 +238,26 @@ class PostgresQueueRepository(QueueRecord):
         # 🌟 เราให้ Helper ประกอบร่างจบเลย ไม่ต้องเขียนใหม่!
         return self._map_row_to_entity(row)
 
-    def find_active_queue_by_patient(
-        self, patient_id: UUID, queue_date: date
-    ) -> Optional[Queue]:
-        pass
+    def find_active_queue_by_patient(self, patient_id, queue_date) -> Queue | None:
+        """หาคิวที่ยังไม่เสร็จสิ้นของคนไข้ในวันที่กำหนด เพื่อป้องกันการออกคิวซ้ำ"""
+        with self.connection.cursor(row_factory=dict_row) as cursor:
+
+            values = (
+                str(patient_id),
+                queue_date,
+                QueueStatus.COMPLETED.value,
+                QueueStatus.CANCELLED.value,
+            )
+
+            # โยน patient_id (แปลงเป็น string) และ queue_date เข้าไป
+            cursor.execute(self._SELECT_ACTIVE_QUEUE_QUERY, values)
+            row = cursor.fetchone()
+
+        if not row:
+            return None
+
+        # 🌟 เรียกใช้นักประกอบร่างสุดหล่อของเรา
+        return self._map_row_to_entity(row)
 
     def get_all_queues_today(self, today: date) -> List[Queue]:
         pass

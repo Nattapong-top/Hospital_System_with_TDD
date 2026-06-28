@@ -57,3 +57,31 @@ def test_pg_queue_repo_should_get_last_queue_of_today(pg_queue_table, queue):
     assert last_queue is not None
     assert queue_2.id == last_queue.id
     assert queue_2.queue_number.id == 2
+
+
+def test_pg_queue_repo_should_find_active_queue(pg_queue_table, queue):
+
+    repo = PostgresQueueRepository(pg_queue_table)
+
+    # 1. บันทึกคิวใหม่ (สถานะตั้งต้นคือ WAITING ถือว่าเป็น Active Queue)
+    queue.queue_date = date.today()
+    repo.save(queue)
+
+    # Act 1: ลองค้นหาคิว Active ของคนไข้คนนี้
+    active_queue = repo.find_active_queue_by_patient(queue.patient_id, date.today())
+
+    # Assert 1: ต้องเจอคิวที่เพิ่งบันทึกไป
+    assert active_queue is not None
+    assert active_queue.id == queue.id
+    assert active_queue.status.value == "รอ"
+
+    # 2. จำลองเหตุการณ์: คนไข้ตรวจเสร็จแล้ว (สถานะเปลี่ยนเป็น COMPLETED)
+    queue.status = queue.status.COMPLETED
+    queue.version = queue.version.increment()
+    repo.update(queue)
+
+    # Act 2: ลองค้นหาคิว Active อีกรอบ
+    completed_queue = repo.find_active_queue_by_patient(queue.patient_id, date.today())
+
+    # Assert 2: คราวนี้ต้อง "หาไม่เจอ" (ได้ None) เพราะคิวจบไปแล้ว ไม่ Active แล้ว
+    assert completed_queue is None
