@@ -129,3 +129,35 @@ def pg_queue_table(db_connection):
     with db_connection.cursor() as cur:
         cur.execute("DROP TABLE IF EXISTS queue;")
     db_connection.commit()
+
+
+@fixture
+def pg_consul_table(db_connection):
+
+    db_connection.rollback()
+
+    _CREATE_CONSUL_TABLE_QUERY: LiteralString = """
+        CREATE TABLE IF NOT EXISTS consultations (
+            id UUID PRIMARY KEY,
+            queue_id UUID NOT NULL,
+            doctor_id UUID NOT NULL,
+            patient_id UUID NOT NULL,
+            vital_signs TEXT NOT NULL,       -- เก็บเป็น JSON
+            diagnosis VARCHAR(500),                  -- เก็บเป็น JSON (เป็น NULL ได้ตอนเริ่มตรวจ)
+            status VARCHAR(100) NOT NULL,
+            started_at TIMESTAMP NOT NULL,        -- เก็บ ISO format
+            finished_at TIMESTAMP,                -- เก็บ ISO format (เป็น NULL ได้)
+            version INTEGER NOT NULL DEFAULT 1
+        )
+    """
+
+    with db_connection.cursor() as cur:
+        cur.execute(_CREATE_CONSUL_TABLE_QUERY)
+    db_connection.commit()
+
+    yield db_connection
+    db_connection.rollback()
+
+    with db_connection.cursor() as cur:
+        cur.execute("DROP TABLE IF EXISTS consultations;")
+    db_connection.commit()
