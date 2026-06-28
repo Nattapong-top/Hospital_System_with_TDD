@@ -28,6 +28,10 @@ class PostgresConsultationRepository(ConsultationRepository):
         SELECT * FROM consultations WHERE id  = %s
     """
 
+    _SELECT_QUEUE_ID_QUERY: LiteralString = """
+        SELECT * FROM consultations WHERE queue_id  = %s
+    """
+
     def __init__(self, connection: psycopg.Connection) -> None:
         self.connection = connection
 
@@ -95,4 +99,11 @@ class PostgresConsultationRepository(ConsultationRepository):
         return self._map_row_to_entity(row)
 
     def get_by_queue_id(self, queue_id: UUID) -> Consultation | None:
-        raise NotImplementedError("ยังไม่ได้ implement")
+
+        with self.connection.cursor(row_factory=dict_row) as cursor:
+            cursor.execute(self._SELECT_QUEUE_ID_QUERY, (str(queue_id),))
+            row = cursor.fetchone()
+
+        if not row:
+            return None
+        return self._map_row_to_entity(row)
