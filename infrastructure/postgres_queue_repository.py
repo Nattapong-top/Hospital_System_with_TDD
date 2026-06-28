@@ -25,7 +25,7 @@ from domain.value_object import (
 class PostgresQueueRepository(QueueRecord):
     _INSERT_QUEUE_QUERY: LiteralString = """
         INSERT INTO queue (
-            q_id, p_id, p_num, q_date, status, ver,
+            q_id, p_id, q_num, q_date, status, ver,
             bp_sys, bp_dia, w_kg, h_cm, temp_c, symptom,
             diag_disease, diag_treatment, diag_meds
         ) VALUES (
@@ -48,7 +48,7 @@ class PostgresQueueRepository(QueueRecord):
     _SELECT_LAST_QUEUE_QUERY: LiteralString = """
         SELECT * FROM queue 
             WHERE q_date = %s
-            ORDER BY p_num DESC
+            ORDER BY q_num DESC
             LIMIT 1
     """
 
@@ -63,7 +63,7 @@ class PostgresQueueRepository(QueueRecord):
     _SELECT_ALL_TODAY_QUERY: LiteralString = """
         SELECT * FROM queue 
             WHERE q_date = %s
-            ORDER BY p_num ASC
+            ORDER BY q_num ASC
     """
 
     def __init__(self, connection: psycopg.Connection):
@@ -146,7 +146,7 @@ class PostgresQueueRepository(QueueRecord):
         return Queue(
             id=row["q_id"],
             patient_id=row["p_id"],
-            queue_number=Number(id=row["p_num"]),
+            queue_number=Number(id=row["q_num"]),
             queue_date=row["q_date"],
             status=QueueStatus(row["status"]),
             version=Version(number=row["ver"]),

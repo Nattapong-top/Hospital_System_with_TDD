@@ -104,7 +104,7 @@ def pg_queue_table(db_connection):
             CREATE TABLE IF NOT EXISTS queue (
                 q_id UUID PRIMARY KEY, 
                 p_id UUID NOT NULL, 
-                p_num INTEGER NOT NULL,
+                q_num INTEGER NOT NULL,
                 q_date DATE NOT NULL,          -- 🌟 เปลี่ยนเป็น DATE
                 status VARCHAR(50) NOT NULL,   -- 🌟 เปลี่ยนเป็น VARCHAR
                 ver INTEGER DEFAULT 1,
