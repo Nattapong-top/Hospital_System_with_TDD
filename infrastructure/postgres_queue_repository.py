@@ -60,6 +60,12 @@ class PostgresQueueRepository(QueueRecord):
             LIMIT 1
     """
 
+    _SELECT_ALL_TODAY_QUERY: LiteralString = """
+        SELECT * FROM queue 
+            WHERE q_date = %s
+            ORDER BY p_num ASC
+    """
+
     def __init__(self, connection: psycopg.Connection):
         self.connection = connection
 
@@ -260,4 +266,11 @@ class PostgresQueueRepository(QueueRecord):
         return self._map_row_to_entity(row)
 
     def get_all_queues_today(self, today: date) -> List[Queue]:
-        pass
+        with self.connection.cursor(row_factory=dict_row) as cursor:
+            cursor.execute(self._SELECT_ALL_TODAY_QUERY, (today,))
+
+            # 🌟 ใช้ fetchall() เพื่อดึงข้อมูลทั้งหมดที่เจอออกมาเป็น List of Dict
+            rows = cursor.fetchall()
+
+        # 🌟 ใช้ List Comprehension โยนแต่ละแถวให้ Helper ประกอบร่างกลับเป็น Queue
+        return [self._map_row_to_entity(row) for row in rows]
