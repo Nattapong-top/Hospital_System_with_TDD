@@ -28,5 +28,5 @@ all:
 	make check
 	make fix
 	make test
-	make status
 	make diff
+	make status
