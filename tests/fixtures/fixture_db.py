@@ -58,8 +58,11 @@ def db_connection(postgres_container):
 
 @fixture
 def pg_patient_table(db_connection):  # <--- เรียกใช้ db_connection ส่วนกลางได้เลย!
+    # 🌟 1. ป้องกัน Connection ค้างจากเทสต์ก่อนหน้า
+    db_connection.rollback()
+
     """Fixture สร้างตาราง Patient ใน Postgres เฉพาะสำหรับไฟล์เทสต์นี้"""
-    _CREATE_PATIENT_TABLE_QUERY = """
+    _CREATE_PATIENT_TABLE_QUERY: LiteralString = """
         CREATE TABLE IF NOT EXISTS patient (
             id UUID PRIMARY KEY,
             national_id VARCHAR(13) UNIQUE NOT NULL,
@@ -87,34 +90,42 @@ def pg_patient_table(db_connection):  # <--- เรียกใช้ db_connect
 
 @fixture
 def pg_queue_table(db_connection):
-    """Fixture สร้างตาราง Queue ใน Postgres (ปรับ Types ให้เป็น Postgres แท้ๆ)"""
-    _CREATE_QUEUE_TABLE_QUERY: LiteralString = """
-        CREATE TABLE IF NOT EXISTS queue (
-            q_id UUID PRIMARY KEY, 
-            p_id UUID NOT NULL, 
-            p_num INTEGER NOT NULL,
-            q_date DATE NOT NULL,          -- 🌟 เปลี่ยนเป็น DATE
-            status VARCHAR(50) NOT NULL,   -- 🌟 เปลี่ยนเป็น VARCHAR
-            ver INTEGER DEFAULT 1,
-            bp_sys INTEGER, 
-            bp_dia INTEGER, 
-            w_kg NUMERIC(5,2),             -- 🌟 เปลี่ยนเป็น NUMERIC แทน REAL (แม่นยำกว่า)
-            h_cm NUMERIC(5,2),             -- 🌟 เปลี่ยนเป็น NUMERIC
-            temp_c NUMERIC(4,2),           -- 🌟 เปลี่ยนเป็น NUMERIC
-            symptom TEXT, 
-            diag_disease TEXT, 
-            diag_treatment TEXT, 
-            diag_meds JSONB                -- 🌟 เปลี่ยนเป็น JSONB ท่าไม้ตายของ Postgres!
-        )
-    """
+    """Fixture สร้างตาราง Queue พร้อมระบบป้องกันข้อมูลรั่วไหลข้าม Test"""
+
+    # 🌟 1. ป้องกัน Connection ค้างจากเทสต์ก่อนหน้า
+    db_connection.rollback()
 
     with db_connection.cursor() as cur:
+        # 🌟 2. สั่งทุบตารางทิ้งก่อนเลย เพื่อความชัวร์ว่าคลีน 100%
+        cur.execute("DROP TABLE IF EXISTS queue;")
+
+        # 3. สร้างตารางใหม่
+        _CREATE_QUEUE_TABLE_QUERY: LiteralString = """
+            CREATE TABLE IF NOT EXISTS queue (
+                q_id UUID PRIMARY KEY, 
+                p_id UUID NOT NULL, 
+                p_num INTEGER NOT NULL,
+                q_date DATE NOT NULL,          -- 🌟 เปลี่ยนเป็น DATE
+                status VARCHAR(50) NOT NULL,   -- 🌟 เปลี่ยนเป็น VARCHAR
+                ver INTEGER DEFAULT 1,
+                bp_sys INTEGER, 
+                bp_dia INTEGER, 
+                w_kg NUMERIC(5,2),             -- 🌟 เปลี่ยนเป็น NUMERIC แทน REAL (แม่นยำกว่า)                                                                                   
+                h_cm NUMERIC(5,2),             -- 🌟 เปลี่ยนเป็น NUMERIC
+                temp_c NUMERIC(4,2),           -- 🌟 เปลี่ยนเป็น NUMERIC
+                symptom TEXT, 
+                diag_disease TEXT, 
+                diag_treatment TEXT, 
+                diag_meds JSONB                -- 🌟 เปลี่ยนเป็น JSONB ท่าไม้ตายของ Postgres!                                                                                    
+            )
+        """
         cur.execute(_CREATE_QUEUE_TABLE_QUERY)
     db_connection.commit()
 
     yield db_connection
 
-    # ล้างตาราง (DROP/TRUNCATE) ทิ้งหลังเทสต์คิวเสร็จ เพื่อไม่ให้ขยะไปกวนเทสต์อื่น
+    # 4. ล้างตารางหลังเทสต์เสร็จ (ทำอีกรอบเพื่อความสะอาด)
+    db_connection.rollback()
     with db_connection.cursor() as cur:
-        cur.execute("DROP TABLE IF EXISTS patient;")
+        cur.execute("DROP TABLE IF EXISTS queue;")
     db_connection.commit()

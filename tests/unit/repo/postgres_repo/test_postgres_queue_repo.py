@@ -1,5 +1,5 @@
 import copy
-from datetime import date
+from datetime import date, timedelta
 from uuid import uuid4
 
 from domain.value_object import Number
@@ -85,3 +85,33 @@ def test_pg_queue_repo_should_find_active_queue(pg_queue_table, queue):
 
     # Assert 2: คราวนี้ต้อง "หาไม่เจอ" (ได้ None) เพราะคิวจบไปแล้ว ไม่ Active แล้ว
     assert completed_queue is None
+
+
+def test_pg_queue_repo_should_get_all_queues_today(pg_queue_table, queue):
+    repo = PostgresQueueRepository(pg_queue_table)
+
+    today = date.today()
+    yesterday = today - timedelta(days=1)
+
+    queue.queue_date = today
+    repo.save(queue)
+
+    queue_2 = copy.deepcopy(queue)
+    queue_2.id = uuid4()
+    queue_2.queue_number = Number(id=2)
+    repo.save(queue_2)
+
+    queue_yesterday = copy.deepcopy(queue)
+    queue_yesterday.id = uuid4()
+    queue_yesterday.queue_number = Number(id=1)
+    queue_yesterday.queue_date = yesterday
+    repo.save(queue_yesterday)
+
+    all_queues_today = repo.get_all_queues_today(today)
+
+    assert all_queues_today is not None
+    assert len(all_queues_today) == 2
+    assert all_queues_today[0].id == queue.id
+    assert all_queues_today[0].queue_number.id == 1
+    assert all_queues_today[1].id == queue_2.id
+    assert all_queues_today[1].queue_number.id == 2
