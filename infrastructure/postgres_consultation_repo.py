@@ -68,7 +68,7 @@ class PostgresConsultationRepository(ConsultationRepository):
             ),
             status=QueueStatus(row["status"]),
             started_at=row["started_at"],
-            finished_at=(row["finished_at"] if row["finished_at"] else None),
+            finished_at=(row["finished_at"]),
             version=Version(number=row["version"]),
         )
 
@@ -79,8 +79,10 @@ class PostgresConsultationRepository(ConsultationRepository):
 
         value = self._map_entity_to_tuple(consultation)
 
-        with self.connection.cursor(row_factory=dict_row) as cursor:
+        with self.connection.cursor() as cursor:
             cursor.execute(self._INSERT_CONSULTATION_QUERY, value)
+
+        self.connection.commit()
 
     def get_by_consultation_id(self, consultation_id: UUID) -> Consultation | None:
 
@@ -93,4 +95,4 @@ class PostgresConsultationRepository(ConsultationRepository):
         return self._map_row_to_entity(row)
 
     def get_by_queue_id(self, queue_id: UUID) -> Consultation | None:
-        pass
+        raise NotImplementedError("ยังไม่ได้ implement")
