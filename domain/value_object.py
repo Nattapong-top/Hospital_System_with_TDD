@@ -219,6 +219,10 @@ class Version(DomainValueObject):
     def increment(self) -> "Version":
         return Version(number=self.number + 1)
 
+    @property
+    def previous(self) -> "Version":
+        return Version(number=self.number - 1)
+
 
 class Username(DomainValueObject):
     id: str = Field(..., min_length=5, max_length=20, pattern=r"^[a-zA-Z0-9_-]{5,20}$")
