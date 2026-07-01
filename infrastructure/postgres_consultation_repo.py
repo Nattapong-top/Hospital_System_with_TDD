@@ -5,6 +5,7 @@ import psycopg
 from psycopg.rows import dict_row
 
 from domain.consultation_entities import Consultation
+from domain.custom_error import ConcurrentUpdateError
 from domain.interfaces import ConsultationRepository
 from domain.value_object import VitalSigns, Diagnosis, QueueStatus, Version
 
@@ -22,6 +23,14 @@ class PostgresConsultationRepository(ConsultationRepository):
         VALUES (
         %s, %s, %s, %s, %s, %s, %s, %s, %s, %s
         )
+    """
+
+    _UPDATE_CONSULTATION_QUERY: LiteralString = """
+        UPDATE consultations SET
+        vital_signs = %s, diagnosis = %s, 
+        status = %s, started_at = %s,
+        finished_at = %s, version = %s
+        WHERE id = %s AND version = %s
     """
 
     _SELECT_CONSULTATION_ID_QUERY: LiteralString = """
@@ -76,6 +85,23 @@ class PostgresConsultationRepository(ConsultationRepository):
             version=Version(number=row["version"]),
         )
 
+    @staticmethod
+    def _map_update_entity_to_tuple(consultation: Consultation) -> tuple:
+        return (
+            consultation.vital_signs.model_dump_json(),
+            (
+                consultation.diagnosis.model_dump_json()
+                if consultation.diagnosis
+                else None
+            ),
+            consultation.status.value,
+            consultation.started_at,
+            consultation.finished_at if consultation.finished_at else None,
+            consultation.version.number,
+            consultation.id,
+            consultation.version.previous.number,
+        )
+
     # ==========================================
     # 🚀 2. Main Methods (เมธอดหลักที่ Domain เรียกใช้)
     # ==========================================
@@ -86,6 +112,18 @@ class PostgresConsultationRepository(ConsultationRepository):
         with self.connection.cursor() as cursor:
             cursor.execute(self._INSERT_CONSULTATION_QUERY, value)
 
+        self.connection.commit()
+
+    def update(self, consultation: Consultation) -> None:
+        value = self._map_update_entity_to_tuple(consultation)
+
+        with self.connection.cursor() as cursor:
+            cursor.execute(self._UPDATE_CONSULTATION_QUERY, value)
+
+            if cursor.rowcount == 0:
+                raise ConcurrentUpdateError(
+                    entity_name="ใบตรวจรักษา", entity_id=consultation.id
+                )
         self.connection.commit()
 
     def get_by_consultation_id(self, consultation_id: UUID) -> Consultation | None:
