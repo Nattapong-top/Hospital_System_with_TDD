@@ -1,3 +1,6 @@
+from typing import LiteralString, Any, Mapping, cast
+from uuid import UUID
+
 import psycopg
 from psycopg.errors import UniqueViolation
 from psycopg.rows import dict_row
@@ -24,7 +27,7 @@ class PostgresPatientRepository(PatientRecord):
 
     # --- SQL Constants: รวม SQL ไว้ที่เดียว ---
 
-    _INSERT_PATIENT_QUERY = """
+    _INSERT_PATIENT_QUERY: LiteralString = """
         INSERT INTO patient (
             id, national_id, first_name, last_name, phone_number,
             date_of_birth, registered_address, current_address, rights, version
@@ -33,13 +36,13 @@ class PostgresPatientRepository(PatientRecord):
         );
     """
 
-    _SELECT_BY_NATIONAL_ID_QUERY = """
+    _SELECT_BY_NATIONAL_ID_QUERY: LiteralString = """
         SELECT id, national_id, first_name, last_name, phone_number,
             date_of_birth, registered_address, current_address, rights, version 
             FROM patient WHERE national_id = %s;
             """
 
-    _UPDATE_PATIENT_QUERY = """
+    _UPDATE_PATIENT_QUERY: LiteralString = """
         UPDATE patient 
             SET first_name = %s,
                 last_name = %s,
@@ -55,43 +58,11 @@ class PostgresPatientRepository(PatientRecord):
     def __init__(self, connection: psycopg.Connection) -> None:
         self.connection = connection
 
-    def save(self, patient: Patient) -> None:
-        values = (
-            patient.id,
-            patient.national_id.id,
-            patient.first_name.value,
-            patient.last_name.value,
-            patient.phone_number.value,
-            patient.date_of_birth.model_dump_json(),
-            patient.registered_address.model_dump_json(),
-            patient.current_address.model_dump_json(),
-            patient.rights.rights_type.value,
-            patient.version.number,
-        )
-
-        try:
-            with self.connection.cursor() as cur:
-                cur.execute(self._INSERT_PATIENT_QUERY, values)
-            self.connection.commit()
-
-        except UniqueViolation:
-            # กฎเหล็ก Postgres: ถ้าเกิด Error ใน Transaction ต้อง Rollback ก่อนเสมอ!
-            self.connection.rollback()
-
-            # แปลงร่าง Database Error ให้กลายเป็น Domain Error
-            raise DuplicateNationalIDError(
-                f"เลขบัตรประชาชนนี้มีในระบบแล้ว: {patient.national_id.id}"
-            )
-
-    def get_by_national_id(self, national_id: NationalID) -> Patient | None:
-
-        with self.connection.cursor(row_factory=dict_row) as cur:
-            cur.execute(self._SELECT_BY_NATIONAL_ID_QUERY, (national_id.id,))
-            row_patient = cur.fetchone()
-
-        if not row_patient:
-            return None
-
+    # ==========================================
+    # 📝 1. Helper Methods (ตัวช่วยแปลภาษาไป-กลับ)
+    # ==========================================
+    @staticmethod
+    def _map_row_to_patient(row_patient: Mapping[str, Any]) -> Patient:
         return Patient(
             id=row_patient["id"],
             national_id=NationalID(id=row_patient["national_id"]),
@@ -117,9 +88,29 @@ class PostgresPatientRepository(PatientRecord):
             version=Version(number=row_patient["version"]),
         )
 
-    def update(self, patient: Patient) -> None:
-        current_version = patient.version.number
-        old_version = current_version - 1
+    @staticmethod
+    def _map_patient_to_tuple(
+        patient: Patient,
+    ) -> tuple[UUID, str, str, str, str, str, str, str, str, int]:
+
+        values = (
+            patient.id,
+            patient.national_id.id,
+            patient.first_name.value,
+            patient.last_name.value,
+            patient.phone_number.value,
+            patient.date_of_birth.model_dump_json(),
+            patient.registered_address.model_dump_json(),
+            patient.current_address.model_dump_json(),
+            patient.rights.rights_type.value,
+            patient.version.number,
+        )
+        return values
+
+    @staticmethod
+    def _map_update_patient_to_tuple(
+        patient: Patient,
+    ) -> tuple[str, str, str, str, str, str, str, int, UUID, int]:
 
         values = (
             patient.first_name.value,
@@ -129,10 +120,43 @@ class PostgresPatientRepository(PatientRecord):
             patient.registered_address.model_dump_json(),
             patient.current_address.model_dump_json(),
             patient.rights.rights_type.value,
-            current_version,
+            patient.version.number,
             patient.id,
-            old_version,
+            patient.version.previous.number,
         )
+        return values
+
+    def save(self, patient: Patient) -> None:
+        values = self._map_patient_to_tuple(patient)
+
+        try:
+            with self.connection.cursor() as cur:
+                cur.execute(self._INSERT_PATIENT_QUERY, values)
+            self.connection.commit()
+
+        except UniqueViolation:
+            # กฎเหล็ก Postgres: ถ้าเกิด Error ใน Transaction ต้อง Rollback ก่อนเสมอ!
+            self.connection.rollback()
+
+            # แปลงร่าง Database Error ให้กลายเป็น Domain Error
+            raise DuplicateNationalIDError(
+                f"เลขบัตรประชาชนนี้มีในระบบแล้ว: {patient.national_id.id}"
+            )
+
+    def get_by_national_id(self, national_id: NationalID) -> Patient | None:
+
+        with self.connection.cursor(row_factory=dict_row) as cur:
+            cur.execute(self._SELECT_BY_NATIONAL_ID_QUERY, (national_id.id,))
+            row_patient = cur.fetchone()
+
+        if row_patient is None:
+            return None
+
+        row_patient = cast(Mapping[str, Any], row_patient)
+        return self._map_row_to_patient(row_patient)
+
+    def update(self, patient: Patient) -> None:
+        values = self._map_update_patient_to_tuple(patient)
 
         with self.connection.cursor() as cur:
             cur.execute(self._UPDATE_PATIENT_QUERY, values)
