@@ -1,5 +1,6 @@
+from collections.abc import Mapping
 from datetime import date
-from typing import List, LiteralString, Any
+from typing import List, LiteralString, Any, cast
 from uuid import UUID
 
 import psycopg
@@ -73,7 +74,7 @@ class PostgresQueueRepository(QueueRecord):
     # 📝 1. Helper Methods (ตัวช่วยแปลภาษาไป-กลับ)
     # ==========================================
     @staticmethod
-    def _map_entity_to_tuple(queue: Queue) -> tuple:
+    def _map_entity_to_tuple(queue: Queue) -> tuple[Any, ...]:
         """แปลงจาก Domain Entity เป็น Tuple เพื่อยัดลง DB"""
         vs = queue.vital_signs
         diag = queue.diagnosis
@@ -155,7 +156,7 @@ class PostgresQueueRepository(QueueRecord):
         )
 
     @staticmethod
-    def _map_entity_for_update(queue: Queue) -> tuple:
+    def _map_entity_for_update(queue: Queue) -> tuple[Any, ...]:
         """แพ็กข้อมูล Queue เป็น Tuple สำหรับคำสั่ง UPDATE (เรียงตาม _UPDATE_QUEUE_QUERY)"""
         vs = queue.vital_signs
         diag = queue.diagnosis
@@ -168,9 +169,6 @@ class PostgresQueueRepository(QueueRecord):
                 + ",".join([m.model_dump_json() for m in diag.medicine_prescribed])
                 + "]"
             )
-
-        # คำนวณ Version เก่าสำหรับเงื่อนไข WHERE
-        old_version = queue.version.number - 1
 
         return (
             queue.status.value,
@@ -186,7 +184,7 @@ class PostgresQueueRepository(QueueRecord):
             meds_json,
             # ----- ส่วนของ WHERE -----
             str(queue.id),
-            old_version,
+            queue.version.previous.number,
         )
 
     # ==========================================
@@ -209,6 +207,7 @@ class PostgresQueueRepository(QueueRecord):
         if not row:
             return None
 
+        row = cast(Mapping[str, Any], row)
         return self._map_row_to_entity(row)
 
     def update(self, queue: Queue) -> None:
@@ -222,6 +221,7 @@ class PostgresQueueRepository(QueueRecord):
 
             # 3. เช็ค Optimistic Locking
             if cursor.rowcount == 0:
+                self.connection.rollback()
                 raise ConcurrentUpdateError(
                     f"คิว {queue.id} ถูกแก้ไขโดยผู้อื่นไปแล้ว กรุณาโหลดข้อมูลใหม่"
                 )
@@ -241,13 +241,15 @@ class PostgresQueueRepository(QueueRecord):
         if not row:
             return None
 
+        row = cast(Mapping[str, Any], row)
         # 🌟 เราให้ Helper ประกอบร่างจบเลย ไม่ต้องเขียนใหม่!
         return self._map_row_to_entity(row)
 
-    def find_active_queue_by_patient(self, patient_id, queue_date) -> Queue | None:
+    def find_active_queue_by_patient(
+        self, patient_id: UUID, queue_date: date
+    ) -> Queue | None:
         """หาคิวที่ยังไม่เสร็จสิ้นของคนไข้ในวันที่กำหนด เพื่อป้องกันการออกคิวซ้ำ"""
         with self.connection.cursor(row_factory=dict_row) as cursor:
-
             values = (
                 str(patient_id),
                 queue_date,
@@ -262,7 +264,8 @@ class PostgresQueueRepository(QueueRecord):
         if not row:
             return None
 
-        # 🌟 เรียกใช้นักประกอบร่างสุดหล่อของเรา
+        row = cast(Mapping[str, Any], row)
+        # 🌟 เรียกใช้นักประกอบร่าง
         return self._map_row_to_entity(row)
 
     def get_all_queues_today(self, today: date) -> List[Queue]:
@@ -273,4 +276,4 @@ class PostgresQueueRepository(QueueRecord):
             rows = cursor.fetchall()
 
         # 🌟 ใช้ List Comprehension โยนแต่ละแถวให้ Helper ประกอบร่างกลับเป็น Queue
-        return [self._map_row_to_entity(row) for row in rows]
+        return [self._map_row_to_entity(cast(Mapping[str, Any], row)) for row in rows]
