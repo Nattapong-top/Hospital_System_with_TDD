@@ -29,7 +29,7 @@ def test_doctor_starts_consultation_should_change_status_to_IN_PROGRESS(
     )
     assert db_queue is not None
     assert db_queue.status == QueueStatus.IN_PROGRESS
-    assert db_queue.version.number == 2
+    assert db_queue.version.current_number == 2
 
 
 def test_doctor_complete_visit_should_change_status_to_COMPLETE(
@@ -52,12 +52,12 @@ def test_doctor_complete_visit_should_change_status_to_COMPLETE(
 
     completed_queue = queue_service.change_status_complete(updated_queue.id)
     assert completed_queue.status == QueueStatus.COMPLETED
-    assert completed_queue.version.number == 3
+    assert completed_queue.version.current_number == 3
 
     # 🚩 พิสูจน์ความชัวร์: ไปแอบเปิดตู้เหล็กดูอีกรอบ ว่าในฐานข้อมูลมันเปลี่ยนจริงๆ ไหม!
     db_queue = queue_service.queue_repo.get_by_queue_id(completed_queue.id)
     assert db_queue.status == QueueStatus.COMPLETED
-    assert db_queue.version.number == 3
+    assert db_queue.version.current_number == 3
 
 
 def test_doctor_cancel_visit_should_change_status_to_CANCELLED(
@@ -67,11 +67,11 @@ def test_doctor_cancel_visit_should_change_status_to_CANCELLED(
         new_queue.patient_id, today_date
     )
     assert active_queue.status == QueueStatus.WAITING
-    assert active_queue.version.number == 1
+    assert active_queue.version.current_number == 1
 
     cancelled_queue = queue_service.cancel_visit(active_queue.id)
     assert cancelled_queue.status == QueueStatus.CANCELLED
-    assert cancelled_queue.version.number == 2
+    assert cancelled_queue.version.current_number == 2
 
     db_queue = queue_service.queue_repo.get_by_queue_id(cancelled_queue.id)
     assert db_queue.status == QueueStatus.CANCELLED
@@ -84,7 +84,7 @@ def test_doctor_cancel_visit_should_change_status_to_CANCELLED_when_status_IN_PR
         new_queue.patient_id, today_date
     )
     assert active_queue.status == QueueStatus.WAITING
-    assert active_queue.version.number == 1
+    assert active_queue.version.current_number == 1
 
     in_progress_queue = queue_service.change_status_to_examining(active_queue.id)
     db_active = queue_service.get_active_queue_by_patient(
@@ -94,11 +94,11 @@ def test_doctor_cancel_visit_should_change_status_to_CANCELLED_when_status_IN_PR
 
     cancelled_queue = queue_service.cancel_visit(in_progress_queue.id)
     assert cancelled_queue.status == QueueStatus.CANCELLED
-    assert cancelled_queue.version.number == 3
+    assert cancelled_queue.version.current_number == 3
 
     db_queue = queue_service.queue_repo.get_by_queue_id(cancelled_queue.id)
     assert db_queue.status == QueueStatus.CANCELLED
-    assert db_queue.version.number == 3
+    assert db_queue.version.current_number == 3
 
 
 def test_doctor_cannot_cancel_visit_should_raise_error_when_status_COMPLETE(
@@ -118,12 +118,12 @@ def test_doctor_cannot_cancel_visit_should_raise_error_when_status_COMPLETE(
 
     completed_queue = queue_service.change_status_complete(updated_queue.id)
     assert completed_queue.status == QueueStatus.COMPLETED
-    assert completed_queue.version.number == 3
+    assert completed_queue.version.current_number == 3
 
     # 🚩 พิสูจน์ความชัวร์: ไปแอบเปิดตู้เหล็กดูอีกรอบ ว่าในฐานข้อมูลมันเปลี่ยนจริงๆ ไหม!
     db_queue = queue_service.queue_repo.get_by_queue_id(completed_queue.id)
     assert db_queue.status == QueueStatus.COMPLETED
-    assert db_queue.version.number == 3
+    assert db_queue.version.current_number == 3
 
     with raises(InvalidCancelRequestError) as error:
         queue_service.cancel_visit(completed_queue.id)

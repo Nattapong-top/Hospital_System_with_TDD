@@ -106,7 +106,7 @@ def test_queue_service_should_complete_visit_when_is_valid(
     assert update_queue.status == QueueStatus.COMPLETED
     # assert update_queue.diagnosis == diagnosis
     assert update_queue.patient_id == patient.id
-    assert update_queue.version == Version(number=3)
+    assert update_queue.version == Version(current_number=3, previous_number=2)
 
     save_queue = queue_repo.get_by_queue_id(new_queue.id)
     assert save_queue.status == QueueStatus.COMPLETED
@@ -136,11 +136,11 @@ def test_queue_service_should_cancel_visit_when_status_witting(
     new_queue, diagnosis, patient, queue_service, queue_repo
 ):
     assert new_queue.status == QueueStatus.WAITING
-    assert new_queue.version == Version(number=1)
+    assert new_queue.version == Version.initial()
 
     update_queue = queue_service.cancel_visit(queue_id=new_queue.id)
     assert update_queue.status == QueueStatus.CANCELLED
-    assert update_queue.version == Version(number=2)
+    assert update_queue.version == Version(current_number=2, previous_number=1)
     save_queue = queue_repo.get_by_queue_id(new_queue.id)
     assert save_queue.status == QueueStatus.CANCELLED
 
@@ -150,11 +150,11 @@ def test_queue_service_should_cancel_visit_when_status_in_progress(
 ):
     update_queue = queue_service.change_status_to_examining(queue_id=new_queue.id)
     assert update_queue.status == QueueStatus.IN_PROGRESS
-    assert update_queue.version == Version(number=2)
+    assert update_queue.version == Version(current_number=2, previous_number=1)
 
     cancel_queue = queue_service.cancel_visit(queue_id=new_queue.id)
     assert cancel_queue.status == QueueStatus.CANCELLED
-    assert cancel_queue.version == Version(number=3)
+    assert cancel_queue.version == Version(current_number=3, previous_number=2)
     save_queue_repo = queue_repo.get_by_queue_id(new_queue.id)
     assert save_queue_repo.status == QueueStatus.CANCELLED
 

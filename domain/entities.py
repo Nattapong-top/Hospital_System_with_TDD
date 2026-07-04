@@ -38,7 +38,7 @@ class Patient(DomainEntity):
     registered_address: Address
     current_address: Address
     rights: Rights
-    version: Version = Field(default=Version(number=1))
+    version: Version = Version.initial()
 
     def __setattr__(self, name: str, value) -> None:
         # ป้องกันการเปลี่ยนค่า field ที่ห้ามแก้ไข
@@ -112,7 +112,7 @@ class Queue(DomainEntity):
     vital_signs: Optional[VitalSigns] = None
     status: QueueStatus
     diagnosis: Optional[Diagnosis] = None
-    version: Version = Field(default=Version(number=1))
+    version: Version = Version.initial()
 
     def status_in_progress(self) -> None:
         self._validate_status()

@@ -58,7 +58,7 @@ def test_update_patient_first_name_successfully(pg_patient_table, dummy_patient)
     assert updated_patient is not None
     assert updated_patient.national_id == dummy_patient.national_id
     assert updated_patient.first_name.value == "สมปอง"
-    assert updated_patient.version.number == 2
+    assert updated_patient.version.current_number == 2
 
 
 def test_update_patient_raise_concurrent_update_error_when_old_version(

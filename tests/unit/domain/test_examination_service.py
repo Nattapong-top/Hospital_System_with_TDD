@@ -192,7 +192,7 @@ def test_finish_consultation_should_increment_version(
     new_examination, diagnosis, exam_service, new_staff_doctor
 ):
     # 1. Arrange: เช็คก่อนว่าตอนเริ่ม Version คือ 1
-    assert new_examination.version.number == 1
+    assert new_examination.version.current_number == 1
 
     # 2. Act: สั่งจบการตรวจ
     finished_consul = exam_service.finish_consultation(
@@ -202,11 +202,11 @@ def test_finish_consultation_should_increment_version(
     )
 
     # 3. Assert: เลข Version ต้องขยับเป็น 2
-    assert finished_consul.version.number == 2
+    assert finished_consul.version.current_number == 2
 
     # และในตู้เหล็ก (Repo) ก็ต้องเป็นเลข 2 ด้วย
     consul_in_db = exam_service.get_by_consultation_id(new_examination.id)
-    assert consul_in_db.version.number == 2
+    assert consul_in_db.version.current_number == 2
 
 
 def test_cancel_consultation_should_succeed_and_increment_version(
@@ -214,7 +214,7 @@ def test_cancel_consultation_should_succeed_and_increment_version(
 ):
     """เทสการยกเลิกปกติ: สถานะต้องเปลี่ยน และเวอร์ชันต้องขยับ"""
     # 1. Arrange: เช็คเวอร์ชันก่อนยกเลิก
-    assert new_examination.version.number == 1
+    assert new_examination.version.current_number == 1
 
     # 2. Act: สั่งยกเลิก
     cancelled_consul = exam_service.cancel_consultation(
@@ -224,7 +224,7 @@ def test_cancel_consultation_should_succeed_and_increment_version(
 
     # 3. Assert
     assert cancelled_consul.status == QueueStatus.CANCELLED
-    assert cancelled_consul.version.number == 2
+    assert cancelled_consul.version.current_number == 2
     assert cancelled_consul.finished_at is not None  # ต้องมีการประทับเวลายกเลิก
 
 

@@ -63,7 +63,7 @@ class PostgresConsultationRepository(ConsultationRepository):
             consultation.status.value,
             consultation.started_at,
             consultation.finished_at if consultation.finished_at else None,
-            consultation.version.number,
+            consultation.version.current_number,
         )
 
     @staticmethod
@@ -82,7 +82,10 @@ class PostgresConsultationRepository(ConsultationRepository):
             status=QueueStatus(row["status"]),
             started_at=row["started_at"],
             finished_at=(row["finished_at"]),
-            version=Version(number=row["version"]),
+            version=Version(
+                current_number=row["version"],
+                previous_number=row["version"],
+            ),
         )
 
     @staticmethod
@@ -97,9 +100,9 @@ class PostgresConsultationRepository(ConsultationRepository):
             consultation.status.value,
             consultation.started_at,
             consultation.finished_at if consultation.finished_at else None,
-            consultation.version.number,
+            consultation.version.current_number,
             consultation.id,
-            consultation.version.previous.number,
+            consultation.version.previous_number,
         )
 
     # ==========================================

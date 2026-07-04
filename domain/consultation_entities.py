@@ -23,7 +23,7 @@ class Consultation(DomainEntity):
     status: QueueStatus = QueueStatus.IN_PROGRESS
     started_at: datetime = Field(default_factory=datetime.now)
     finished_at: Optional[datetime] = None
-    version: Version = Field(default=Version(number=1))
+    version: Version = Version.initial()
 
     def complete_examination(self, diagnosis: Diagnosis) -> None:
         self._validate_in_progress_status_and_missing_diagnosis(diagnosis=diagnosis)

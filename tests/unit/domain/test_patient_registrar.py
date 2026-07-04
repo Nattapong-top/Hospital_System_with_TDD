@@ -38,7 +38,7 @@ def test_registrar_patient_when_patient_valid(
     assert saved_patient is not None
     assert retrieve.id == saved_patient.id
     assert saved_patient.national_id == NationalID(id="1234567890123")
-    assert saved_patient.version.number == 1
+    assert saved_patient.version.current_number == 1
 
 
 # ยกเลิกเทส เพราะเปลียน business logic จาก raise เป็น return patient
@@ -157,7 +157,7 @@ def test_patient_registrar_should_update_patient_info_through_repository(
 
     updated_in_repo = patient_repo.get_by_national_id(new_patient.national_id)
     assert updated_in_repo.phone_number == new_phone
-    assert updated_in_repo.version.number == 2
+    assert updated_in_repo.version.current_number == 2
 
 
 def test_patient_registrar_should_increment_version_when_update_patient_info(
@@ -178,11 +178,11 @@ def test_patient_registrar_should_increment_version_when_update_patient_info(
     registrar.update_patient_info(new_patient)
     updated_in_repo = patient_repo.get_by_national_id(new_patient.national_id)
     assert updated_in_repo.phone_number == new_phone
-    assert updated_in_repo.version.number == 2
+    assert updated_in_repo.version.current_number == 2
 
     new_right = Rights(rights_type=PatientRights.COMPANY_INSURANCE)
-    new_patient.update_rights(new_right)
-    registrar.update_patient_info(new_patient)
-    updated_in_repo = patient_repo.get_by_national_id(new_patient.national_id)
-    assert updated_in_repo.rights == new_right
-    assert updated_in_repo.version.number == 3
+    updated_in_repo.update_rights(new_right)
+    registrar.update_patient_info(updated_in_repo)
+    updated_in_repo_3 = patient_repo.get_by_national_id(new_patient.national_id)
+    assert updated_in_repo_3.rights == new_right
+    assert updated_in_repo_3.version.current_number == 3
