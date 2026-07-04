@@ -31,7 +31,7 @@ def test_pg_queue_repo_should_update_queue(pg_queue_table, queue, diagnosis):
     assert updated_queue is not None
     assert queue.id == updated_queue.id
     assert updated_queue.status.value == "ตรวจเสร็จแล้ว"
-    assert updated_queue.version.number == 2
+    assert updated_queue.version.current_number == 2
     assert updated_queue.diagnosis is not None
 
     assert updated_queue.diagnosis.disease == "ไข้หวัดใหญ่"

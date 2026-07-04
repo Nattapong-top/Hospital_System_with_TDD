@@ -535,33 +535,33 @@ def test_should_raises_error_when_MedicalSpecialty_is_invalid():
 
 
 def test_Version_should_create_version_is_valid():
-    version = Version(number=1)
-    assert version == Version(number=1)
+    version = Version.initial()
+    assert version == Version.initial()
 
 
 def test_Version_should_raises_error_when_invalid_type():
     with raises(ValidationError):
-        Version(number="A")
+        Version(current_number="A", previous_number=1)
 
 
 def test_Version_should_raises_error_when_number_zero():
     with raises(ValidationError) as excinfo:
-        Version(number=0)
+        Version(current_number=0, previous_number=1)
 
     assert excinfo.type == ValidationError
 
 
 def test_Version_should_raises_error_when_number_negative():
     with raises(ValidationError) as excinfo:
-        Version(number=-10)
+        Version(current_number=-10, previous_number=1)
     assert excinfo.type == ValidationError
 
 
 def test_Version_should_create_increment_next_version_is_valid():
-    current_version = Version(number=1)
-    assert current_version == Version(number=1)
+    current_version = Version.initial()
+    assert current_version == Version.initial()
     next_version = current_version.increment()
-    assert next_version == Version(number=2)
+    assert next_version == Version(current_number=2, previous_number=1)
 
 
 def test_Username_should_create_username_is_valid():

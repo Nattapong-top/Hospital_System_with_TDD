@@ -79,11 +79,8 @@ class SqlConsultationRepository(ConsultationRepository):
 
     def update(self, consultation: Consultation) -> None:
         """อัปเดตใบตรวจ พร้อม Optimistic Locking ป้องกันหมอเซฟทับกัน"""
-        current_version, old_version = self._check_version(consultation)
 
-        data = self._map_update_entity_to_sql_schema(
-            consultation, current_version, old_version
-        )
+        data = self._map_update_entity_to_sql_schema(consultation)
 
         with closing(self._get_connection()) as conn:
             with conn:
@@ -114,10 +111,6 @@ class SqlConsultationRepository(ConsultationRepository):
     # =====================================================================
     # 4. PRIVATE MAPPERS (ลูกมือแปลงร่างข้อมูล)
     # =====================================================================
-    def _check_version(self, consultation: Consultation) -> tuple[int, int]:
-        current_version = consultation.version.number
-        old_version = current_version - 1
-        return current_version, old_version
 
     def _map_entity_to_sql_schema(self, consultation: Consultation) -> tuple:
         return (
@@ -134,7 +127,7 @@ class SqlConsultationRepository(ConsultationRepository):
             consultation.status.value,
             consultation.started_at.isoformat(),
             consultation.finished_at.isoformat() if consultation.finished_at else None,
-            consultation.version.number,
+            consultation.version.current_number,
         )
 
     def _map_sql_schema_to_entity(self, row: sqlite3.Row) -> Consultation:
@@ -156,11 +149,14 @@ class SqlConsultationRepository(ConsultationRepository):
                 if row["finished_at"]
                 else None
             ),
-            version=Version(number=row["version"]),
+            version=Version(
+                current_number=row["version"],
+                previous_number=row["version"],
+            ),
         )
 
     def _map_update_entity_to_sql_schema(
-        self, consultation: Consultation, current_version: int, old_version: int
+        self, consultation: Consultation
     ) -> tuple[str, str | None, str, str | None, int, str, int]:
         data = (
             consultation.vital_signs.model_dump_json(),
@@ -171,8 +167,8 @@ class SqlConsultationRepository(ConsultationRepository):
             ),
             consultation.status.value,
             consultation.finished_at.isoformat() if consultation.finished_at else None,
-            current_version,
+            consultation.version.current_number,
             str(consultation.id),
-            old_version,
+            consultation.version.previous_number,
         )
         return data

@@ -20,18 +20,18 @@ def test_create_consultation_should_have_correct_initial_data(
     assert start_consul.patient_id == new_queue.patient_id
     assert start_consul.doctor_id == new_staff_doctor.staff_id
     assert start_consul.status.value == "กำลังพบหมอ"
-    assert start_consul.version.number == 1
+    assert start_consul.version.current_number == 1
     assert start_consul.started_at is not None
 
 
 def test_complete_examination_should_update_diagnosis_and_increment_version(
     new_consultation, diagnosis
 ):
-    initial_version = new_consultation.version.number
+    initial_version = new_consultation.version.current_number
 
     new_consultation.complete_examination(diagnosis)
 
-    assert new_consultation.version.number == initial_version + 1
+    assert new_consultation.version.current_number == initial_version + 1
     assert new_consultation.status == QueueStatus.COMPLETED
     assert new_consultation.diagnosis == diagnosis
     assert new_consultation.finished_at is not None

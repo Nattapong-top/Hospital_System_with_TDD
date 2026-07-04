@@ -136,7 +136,7 @@ def patient(current_address, registered_address):
         registered_address=registered_address,
         current_address=current_address,
         rights=Rights(rights_type=PatientRights.SOCIAL_SECURITY),
-        version=Version(number=1),
+        version=Version.initial(),
     )
 
 
@@ -185,7 +185,7 @@ def queue(patient, today_date, vital_signs):
         queue_date=today_date,
         vital_signs=vital_signs,
         status=QueueStatus.WAITING,
-        version=Version(number=1),
+        version=Version.initial(),
     )
 
 

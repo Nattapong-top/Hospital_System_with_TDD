@@ -214,14 +214,17 @@ class Number(DomainValueObject):
 
 
 class Version(DomainValueObject):
-    number: int = Field(..., ge=1)
+    current_number: int = Field(..., ge=1)
+    previous_number: int = Field(..., ge=1)
+
+    @classmethod
+    def initial(cls) -> "Version":
+        return cls(current_number=1, previous_number=1)
 
     def increment(self) -> "Version":
-        return Version(number=self.number + 1)
-
-    @property
-    def previous(self) -> "Version":
-        return Version(number=self.number - 1)
+        return self.__class__(
+            current_number=self.current_number + 1, previous_number=self.previous_number
+        )
 
 
 class Username(DomainValueObject):

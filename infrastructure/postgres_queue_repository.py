@@ -94,7 +94,7 @@ class PostgresQueueRepository(QueueRecord):
             queue.queue_number.id,
             queue.queue_date,
             queue.status.value,
-            queue.version.number,
+            queue.version.current_number,
             vs.blood_pressure.systolic if vs else None,
             vs.blood_pressure.diastolic if vs else None,
             vs.weight.value if vs else None,
@@ -150,7 +150,10 @@ class PostgresQueueRepository(QueueRecord):
             queue_number=Number(id=row["q_num"]),
             queue_date=row["q_date"],
             status=QueueStatus(row["status"]),
-            version=Version(number=row["ver"]),
+            version=Version(
+                current_number=row["ver"],
+                previous_number=row["ver"],
+            ),
             vital_signs=vital_signs_obj,
             diagnosis=diagnosis_obj,
         )
@@ -172,7 +175,7 @@ class PostgresQueueRepository(QueueRecord):
 
         return (
             queue.status.value,
-            queue.version.number,
+            queue.version.current_number,
             vs.blood_pressure.systolic if vs else None,
             vs.blood_pressure.diastolic if vs else None,
             vs.weight.value if vs else None,
@@ -184,7 +187,7 @@ class PostgresQueueRepository(QueueRecord):
             meds_json,
             # ----- ส่วนของ WHERE -----
             str(queue.id),
-            queue.version.previous.number,
+            queue.version.previous_number,
         )
 
     # ==========================================

@@ -85,7 +85,10 @@ class PostgresPatientRepository(PatientRecord):
                 else Address.model_validate_json(row_patient["current_address"])
             ),
             rights=Rights(rights_type=PatientRights(row_patient["rights"])),
-            version=Version(number=row_patient["version"]),
+            version=Version(
+                current_number=row_patient["version"],
+                previous_number=row_patient["version"],
+            ),
         )
 
     @staticmethod
@@ -103,7 +106,7 @@ class PostgresPatientRepository(PatientRecord):
             patient.registered_address.model_dump_json(),
             patient.current_address.model_dump_json(),
             patient.rights.rights_type.value,
-            patient.version.number,
+            patient.version.current_number,
         )
         return values
 
@@ -120,9 +123,9 @@ class PostgresPatientRepository(PatientRecord):
             patient.registered_address.model_dump_json(),
             patient.current_address.model_dump_json(),
             patient.rights.rights_type.value,
-            patient.version.number,
+            patient.version.current_number,
             patient.id,
-            patient.version.previous.number,
+            patient.version.previous_number,
         )
         return values
 

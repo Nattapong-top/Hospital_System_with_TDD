@@ -71,7 +71,7 @@ def test_sql_patient_repository_should_save_retrieve_patient_with_version(
 
     assert retrieved is not None
     assert retrieved == patient
-    assert retrieved.version.number == 1
+    assert retrieved.version.current_number == 1
 
 
 def test_sql_patient_repository_should_update_phone_number_and_increment_version(
@@ -85,7 +85,7 @@ def test_sql_patient_repository_should_update_phone_number_and_increment_version
 
     updated = patient_repo.get_by_national_id(national_id=patient.national_id)
     assert updated.phone_number.value == "0999999999"
-    assert updated.version.number == 2
+    assert updated.version.current_number == 2
 
 
 def test_sql_patient_repository_should_raise_error_when_concurrency_conflict(

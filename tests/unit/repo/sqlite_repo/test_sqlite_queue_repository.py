@@ -32,7 +32,7 @@ def test_sqlite_queue_repo_should_update_existing_queue(patient, queue, queue_re
     updated_queue = queue_repo.get_by_queue_id(sample_queue.id)
 
     assert updated_queue.status == QueueStatus.IN_PROGRESS
-    assert updated_queue.version.number == 2
+    assert updated_queue.version.current_number == 2
 
     queue_all = queue_repo.get_all()
     assert len(queue_all) == 1
@@ -96,12 +96,12 @@ def test_sqlite_queue_queue_repo_should_raise_error_when_concurrency_conflict(
 
     nurse_a_view = queue_repo.get_by_queue_id(queue.id)
     nurse_b_view = queue_repo.get_by_queue_id(queue.id)
-    assert nurse_a_view.version.number == nurse_b_view.version.number
-    assert nurse_a_view.version.number == 1
+    assert nurse_a_view.version.current_number == nurse_b_view.version.current_number
+    assert nurse_a_view.version.current_number == 1
 
     nurse_a_view.status_in_progress()
     queue_repo.update(nurse_a_view)
-    assert nurse_a_view.version.number == 2
+    assert nurse_a_view.version.current_number == 2
 
     nurse_b_view.cancel_visit()
 
@@ -117,13 +117,13 @@ def test_sqlite_queue_repo_should_update_queue_when_have_id_(queue_repo, queue):
     retrieved = queue_repo.get_by_queue_id(queue.id)
     assert retrieved is not None
     assert retrieved.id == queue.id
-    assert retrieved.version.number == 1
+    assert retrieved.version.current_number == 1
 
     retrieved.status_in_progress()
-    assert retrieved.version.number == 2
+    assert retrieved.version.current_number == 2
 
     queue_repo.update(retrieved)
 
     db_queue = queue_repo.get_by_queue_id(queue.id)
     assert db_queue.status == QueueStatus.IN_PROGRESS
-    assert db_queue.version.number == 2
+    assert db_queue.version.current_number == 2

@@ -82,9 +82,8 @@ class SqlStaffRepository:
 
     def update(self, staff: Staff) -> None:
         # ดึงเลขเวอร์ชันปัจจุบันจากในตู้ (ที่ส่งมาจาก Entity คือตัวที่ increment แล้ว)
-        current_version, old_version = self._check_version(staff)
 
-        data = self._map_staff_to_data_for_sql(staff, current_version, old_version)
+        data = self._map_staff_to_data_for_sql(staff)
 
         with closing(self._get_connection()) as conn:
             with conn:
@@ -126,7 +125,7 @@ class SqlStaffRepository:
             staff.date_of_birth.model_dump_json(),  # แปลง VO เป็น JSON
             staff.phone_number.value,
             staff.role.value,
-            staff.version.number,
+            staff.version.current_number,
             staff.is_active,
         )
 
@@ -143,22 +142,16 @@ class SqlStaffRepository:
             date_of_birth=DateOfBirth.model_validate_json(row["date_of_birth"]),
             phone_number=PhoneNumber(value=row["phone_number"]),
             role=StaffRole(row["role"]),
-            version=Version(number=row["version"]),
+            version=Version(
+                current_number=row["version"],
+                previous_number=row["version"],
+            ),
             is_active=bool(row["is_active"]),
         )
-
-    def _check_version(self, staff: Staff) -> tuple[int, int]:
-        current_version = (
-            staff.version.number
-        )  # เวอร์ชันเดิมที่จะเอาไปค้นหาใน DB (WHERE)
-        old_version = current_version - 1  # เวอร์ชันใหม่ที่จะเอาไปเซฟทับ (SET)
-        return current_version, old_version
 
     def _map_staff_to_data_for_sql(
         self,
         staff: Staff,
-        current_version,
-        old_version,
     ) -> tuple:
         data = (
             staff.hashed_password.value,
@@ -167,9 +160,9 @@ class SqlStaffRepository:
             staff.date_of_birth.model_dump_json(),  # แปลง VO เป็น JSON
             staff.phone_number.value,
             staff.role.value,
-            current_version,
+            staff.version.current_number,
             staff.is_active,
             str(staff.staff_id),
-            old_version,
+            staff.version.previous_number,
         )
         return data

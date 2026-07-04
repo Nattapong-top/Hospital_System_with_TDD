@@ -116,12 +116,8 @@ class SqlQueueRepository(QueueRecord):
         with closing(self._get_connection()) as conn:
             with conn:
 
-                current_ver = queue.version.number
-                old_ver = queue.version.number - 1
                 diag_data = self._prepare_diagnosis(queue)
-                data = self._map_patient_to_data_for_sql(
-                    current_ver, diag_data, old_ver, queue
-                )
+                data = self._map_patient_to_data_for_sql(diag_data, queue)
 
                 cursor = conn.execute(self._UPDATE_QUEUE_QUERY, data)
 
@@ -216,7 +212,7 @@ class SqlQueueRepository(QueueRecord):
             queue.queue_number.id,
             queue.queue_date.isoformat(),
             queue.status.value,
-            queue.version.number,
+            queue.version.current_number,
             queue.vital_signs.blood_pressure.systolic,
             queue.vital_signs.blood_pressure.diastolic,
             queue.vital_signs.weight.value,
@@ -246,7 +242,10 @@ class SqlQueueRepository(QueueRecord):
             queue_number=Number(id=row["p_num"]),
             queue_date=date.fromisoformat(row["q_date"]),
             status=QueueStatus(row["status"]),
-            version=Version(number=row["ver"]),
+            version=Version(
+                current_number=row["ver"],
+                previous_number=row["ver"],
+            ),
             vital_signs=VitalSigns(
                 blood_pressure=BloodPressure(
                     systolic=row["bp_sys"], diastolic=row["bp_dia"]
@@ -261,9 +260,7 @@ class SqlQueueRepository(QueueRecord):
 
     def _map_patient_to_data_for_sql(
         self,
-        current_ver: int,
         diag_data: dict[str, str | None],
-        old_ver: int,
         queue: Queue,
     ) -> tuple[
         str,
@@ -282,7 +279,7 @@ class SqlQueueRepository(QueueRecord):
     ]:
         data = (
             queue.status.value,
-            current_ver,  # เลขใหม่
+            queue.version.current_number,  # เลขใหม่
             queue.vital_signs.blood_pressure.systolic,
             queue.vital_signs.blood_pressure.diastolic,
             queue.vital_signs.weight.value,
@@ -293,6 +290,6 @@ class SqlQueueRepository(QueueRecord):
             diag_data["treatment"],
             diag_data["meds"],
             str(queue.id),
-            old_ver,  # 🚩 ต้อง WHERE ด้วยเลขเก่า
+            queue.version.previous_number,  # 🚩 ต้อง WHERE ด้วยเลขเก่า
         )
         return data

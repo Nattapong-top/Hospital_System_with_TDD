@@ -150,7 +150,7 @@ def test_staff_service_with_authenticate_should_raise_error_when_is_active_false
     )
 
     # ตอนนี้มั่นใจได้ 100% ว่ามีหมอคนนี้อยู่ใน DB แน่นอนและเวอร์ชันเป็น 1
-    assert staff.version.number == 1
+    assert staff.version.current_number == 1
 
     staff_service.suspend_staff(staff.staff_id)
 
@@ -181,13 +181,13 @@ def test_staff_service_with_suspend_should_raise_error_when_is_active_false(
     )
 
     # ตอนนี้มั่นใจได้ 100% ว่ามีหมอคนนี้อยู่ใน DB แน่นอนและเวอร์ชันเป็น 1
-    assert staff.version.number == 1
+    assert staff.version.current_number == 1
 
     # 2. สั่งแบนใน Memory
     staff_service.suspend_staff(staff.staff_id)
     suspend_staff = staff_service.get_by_staff_id(staff.staff_id)
     assert suspend_staff.is_active is False
-    assert suspend_staff.version.number == 2
+    assert suspend_staff.version.current_number == 2
 
     # 4. ลองล็อกอินด้วยรหัสสด
     with pytest.raises(AccountSuspendedError) as err:
@@ -203,13 +203,13 @@ def test_staff_service_with_reactivate_should_return_staff_when_authenticated(
 ):
     staff_service.suspend_staff(new_register_staff.staff_id)
     suspend_staff = staff_service.get_by_staff_id(new_register_staff.staff_id)
-    assert suspend_staff.version.number == 2
+    assert suspend_staff.version.current_number == 2
     assert suspend_staff.is_active is False
 
     staff_service.reactivate_staff(suspend_staff.staff_id)
     reactivate_staff = staff_service.get_by_staff_id(suspend_staff.staff_id)
 
-    assert reactivate_staff.version.number == 3
+    assert reactivate_staff.version.current_number == 3
     assert reactivate_staff.is_active is True
 
     auth_staff = staff_service.authenticate_staff(

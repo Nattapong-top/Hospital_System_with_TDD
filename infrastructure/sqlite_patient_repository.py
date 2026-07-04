@@ -104,9 +104,8 @@ class SqlPatientRepository(PatientRecord):
 
     def update(self, patient: Patient) -> None:
         # ดึงเลขเวอร์ชันปัจจุบันจากในตู้ (ที่ส่งมาจาก Entity คือตัวที่ increment แล้ว)
-        current_version, old_version = self._check_version(patient)
 
-        data = self._map_entity_patient_update(current_version, old_version, patient)
+        data = self._map_entity_patient_update(patient)
 
         with closing(self._get_connection()) as conn:
             with conn:
@@ -138,7 +137,7 @@ class SqlPatientRepository(PatientRecord):
             patient.registered_address.model_dump_json(),  # แปลง VO เป็น JSON
             patient.current_address.model_dump_json(),  # แปลง VO เป็น JSON
             patient.rights.rights_type.value,
-            patient.version.number,
+            patient.version.current_number,
         )
 
     def _map_row_to_entity(self, row: sqlite3.Row) -> Patient:
@@ -153,16 +152,14 @@ class SqlPatientRepository(PatientRecord):
             registered_address=Address.model_validate_json(row["registered_address"]),
             current_address=Address.model_validate_json(row["current_address"]),
             rights=Rights(rights_type=PatientRights(row["rights"])),
-            version=Version(number=row["version"]),
+            version=Version(
+                current_number=row["version"],
+                previous_number=row["version"],
+            ),
         )
 
-    def _check_version(self, patient: Patient) -> tuple[int, int]:
-        current_version = patient.version.number
-        old_version = current_version - 1
-        return current_version, old_version
-
     def _map_entity_patient_update(
-        self, current_version: int, old_version: int, patient: Patient
+        self, patient: Patient
     ) -> tuple[str, str, str, str, str, str, str, int, str, int]:
 
         data = (
@@ -173,8 +170,8 @@ class SqlPatientRepository(PatientRecord):
             patient.registered_address.model_dump_json(),  # แปลง VO เป็น JSON
             patient.current_address.model_dump_json(),  # แปลง VO เป็น JSON
             patient.rights.rights_type.value,
-            current_version,
+            patient.version.current_number,
             str(patient.id),
-            old_version,
+            patient.version.previous_number,
         )
         return data

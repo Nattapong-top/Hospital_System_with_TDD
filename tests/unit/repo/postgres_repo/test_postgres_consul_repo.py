@@ -43,7 +43,7 @@ def test_consul_repo_should_update_consul_success(
     assert consul_completed is not None
     assert consul_completed.id == new_consultation.id
     assert consul_completed.status.value == QueueStatus.COMPLETED.value
-    assert consul_completed.version.number == 2
+    assert consul_completed.version.current_number == 2
 
 
 def test_consul_repo_concurrent_update_should_raise_error(
@@ -65,5 +65,5 @@ def test_consul_repo_concurrent_update_should_raise_error(
     assert "มีคนอื่นแก้ไขข้อมูลนี้ไปแล้ว" in str(e.value)
     latest = repo.get_by_consultation_id(new_consultation.id)
 
-    assert latest.version.number == 2
+    assert latest.version.current_number == 2
     assert latest.status == QueueStatus.CANCELLED

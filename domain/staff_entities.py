@@ -26,7 +26,7 @@ class Staff(DomainEntity):
     date_of_birth: DateOfBirth
     phone_number: PhoneNumber
     role: StaffRole
-    version: Version = Field(default=Version(number=1))
+    version: Version = Version.initial()
     is_active: bool = Field(default=True)
 
     def __setattr__(self, name: str, value) -> None:
