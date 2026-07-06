@@ -161,3 +161,35 @@ def pg_consul_table(db_connection):
     with db_connection.cursor() as cur:
         cur.execute("DROP TABLE IF EXISTS consultations;")
     db_connection.commit()
+
+
+@fixture
+def pg_staffs_table(db_connection):
+    db_connection.rollback()
+
+    _CREATE_STAFFS_TABLE_QUERY: LiteralString = """
+        CREATE TABLE IF NOT EXISTS staffs (
+            staff_id UUID PRIMARY KEY,
+            username VARCHAR(20) UNIQUE NOT NULL,
+            hashed_password VARCHAR(60) NOT NULL,
+            national_id VARCHAR(13) UNIQUE NOT NULL,
+            first_name VARCHAR(50) NOT NULL,
+            last_name VARCHAR(50) NOT NULL,
+            date_of_birth JSONB NOT NULL,
+            phone_number VARCHAR(10) NOT NULL,
+            role TEXT NOT NULL,
+            version INTEGER NOT NULL DEFAULT 1,
+            is_active BOOLEAN NOT NULL DEFAULT TRUE
+        )
+    """
+
+    with db_connection.cursor() as cur:
+        cur.execute(_CREATE_STAFFS_TABLE_QUERY)
+    db_connection.commit()
+
+    yield db_connection
+    db_connection.rollback()
+
+    with db_connection.cursor() as cur:
+        cur.execute("DROP TABLE IF EXISTS staffs;")
+    db_connection.commit()
