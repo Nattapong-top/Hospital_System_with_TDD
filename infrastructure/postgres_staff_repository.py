@@ -19,7 +19,6 @@ from domain.value_object import (
 
 
 class PostgresStaffRepository(StaffRepository):
-
     _INSERT_INTO_STAFFS_QUERY: LiteralString = """
         INSERT INTO staffs (
             staff_id, username,
@@ -39,6 +38,14 @@ class PostgresStaffRepository(StaffRepository):
 
     _SELECT_STAFF_ID_QUERY: LiteralString = """
         SELECT * FROM staffs WHERE staff_id = %s
+    """
+
+    _SELECT_NATIONAL_ID_QUERY: LiteralString = """
+        SELECT * FROM staffs WHERE national_id = %s
+    """
+
+    _SELECT_EXISTS_NATIONAL_ID_QUERY: LiteralString = """
+        SELECT EXISTS (SELECT 1 FROM staffs WHERE national_id = %s)
     """
 
     @staticmethod
@@ -102,5 +109,22 @@ class PostgresStaffRepository(StaffRepository):
             return None
         return self._map_row_to_staff(row)
 
-    def get_by_national_id_staff(self, national_id: NationalID) -> Optional[NationalID]:
-        raise NotImplementedError
+    def get_by_national_id_staff(self, national_id: NationalID) -> Optional[Staff]:
+        with self.db_connect.cursor(row_factory=dict_row) as cursor:
+            cursor.execute(self._SELECT_NATIONAL_ID_QUERY, (str(national_id.id),))
+            row = cursor.fetchone()
+        if row is None:
+            return None
+        return self._map_row_to_staff(row)
+
+    def is_national_id_exists(self, national_id: NationalID) -> bool:
+        with self.db_connect.cursor() as cursor:
+            cursor.execute(
+                self._SELECT_EXISTS_NATIONAL_ID_QUERY, (str(national_id.id),)
+            )
+            boolean = cursor.fetchone()
+
+            if boolean is None:
+                return False
+
+            return boolean[0]
