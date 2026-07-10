@@ -221,3 +221,4 @@ __marimo__/
 database/
 *.db
 *.sqlite3
+.junie/
