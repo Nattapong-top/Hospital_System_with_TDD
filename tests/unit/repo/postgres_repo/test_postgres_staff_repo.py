@@ -45,3 +45,20 @@ def test_staff_repo_should_return_false_when_staff_does_not_exist(
     result = repo.is_national_id_exists(new_staff_nurse.national_id)
 
     assert result is False
+
+
+def test_staff_repo_should_update_staff_success(pg_staffs_table, new_staff_doctor):
+    repo = PostgresStaffRepository(pg_staffs_table)
+    repo.save(new_staff_doctor)
+    retrieved_staff = repo.get_by_staff_id(new_staff_doctor.staff_id)
+
+    assert retrieved_staff is not None
+    assert retrieved_staff.first_name.value == "ณัฐพงศ์"
+
+    retrieved_staff.change_first_name("PaaTopIT")
+    repo.update(retrieved_staff)
+    result = repo.get_by_national_id_staff(retrieved_staff.national_id)
+    assert result is not None
+    assert result.staff_id == new_staff_doctor.staff_id
+    assert result.version.current_number == 2
+    assert result.first_name.value == "PaaTopIT"
