@@ -4,6 +4,7 @@ from uuid import UUID
 import psycopg
 from psycopg.rows import dict_row
 
+from domain.custom_error import ConcurrentUpdateError
 from domain.interfaces import StaffRepository
 from domain.staff_entities import Staff
 from domain.value_object import (
@@ -36,6 +37,20 @@ class PostgresStaffRepository(StaffRepository):
         ) 
     """
 
+    _UPDATE_STAFF_QUERY: LiteralString = """
+        UPDATE staffs SET 
+        hashed_password = %s, 
+        first_name = %s, 
+        last_name = %s, 
+        date_of_birth = %s, 
+        phone_number = %s, 
+        role = %s, 
+        version = %s, 
+        is_active = %s
+        WHERE staff_id = %s 
+        AND version = %s
+    """
+
     _SELECT_STAFF_ID_QUERY: LiteralString = """
         SELECT * FROM staffs WHERE staff_id = %s
     """
@@ -62,6 +77,21 @@ class PostgresStaffRepository(StaffRepository):
             staff.role.value,
             staff.version.current_number,
             staff.is_active,
+        )
+
+    @staticmethod
+    def _map_update_staff_to_tuple(staff: Staff) -> tuple:
+        return (
+            staff.hashed_password.value,
+            staff.first_name.value,
+            staff.last_name.value,
+            staff.date_of_birth.model_dump_json(),  # แปลง VO เป็น JSON
+            staff.phone_number.value,
+            staff.role.value,
+            staff.version.current_number,
+            staff.is_active,
+            staff.staff_id,
+            staff.version.previous_number,
         )
 
     @staticmethod
@@ -96,7 +126,18 @@ class PostgresStaffRepository(StaffRepository):
         self.db_connect.commit()
 
     def update(self, staff: Staff) -> None:
-        raise NotImplementedError
+
+        value = self._map_update_staff_to_tuple(staff)
+        with self.db_connect.cursor() as cursor:
+            cursor.execute(self._UPDATE_STAFF_QUERY, value)
+
+            if cursor.rowcount != 1:
+                self.db_connect.rollback()
+                raise ConcurrentUpdateError(
+                    entity_name="ข้อมูลพนักงาน", entity_id=staff.staff_id
+                )
+
+        self.db_connect.commit()
 
     def get_by_username(self, username: Username) -> Optional[Staff]:
         raise NotImplementedError

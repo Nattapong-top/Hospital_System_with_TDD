@@ -81,3 +81,9 @@ class Staff(DomainEntity):
             return
         self.is_active = True
         self.version = self.version.increment()
+
+    def change_first_name(self, first_name_str: str) -> None:
+        if first_name_str == self.first_name.value:
+            raise ValueError("ชื่อเดิม")
+        self.first_name = Name(value=first_name_str)
+        self.version = self.version.increment()
