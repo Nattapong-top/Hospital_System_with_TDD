@@ -98,6 +98,12 @@ class InMemoryStaffRepository(StaffRepository):
             (s for s in self._staffs.values() if s.national_id == national_id), None
         )
 
+    def is_national_id_exists(self, national_id: NationalID) -> bool:
+        for _, staff_vo in self._staffs.items():
+            if staff_vo.national_id == national_id:
+                return True
+        return False
+
 
 class InMemConsulRepo(ConsultationRepository):
     def __init__(self) -> None:

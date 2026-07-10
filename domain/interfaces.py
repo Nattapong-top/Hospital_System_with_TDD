@@ -87,6 +87,11 @@ class StaffRepository(ABC):
         """ค้นหาพนักงานด้วย national_id"""
         pass
 
+    @abstractmethod
+    def is_national_id_exists(self, national_id: NationalID) -> bool:
+        """ตรวจสอบการมีอยู่ของ national_id"""
+        pass
+
 
 class ConsultationRepository(ABC):
     @abstractmethod
