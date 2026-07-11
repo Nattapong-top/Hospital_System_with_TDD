@@ -24,6 +24,10 @@ typecheck:
 run:
 	uvicorn api.main:app --reload
 
+pull:
+	git checkout main
+	git pull origin main
+
 all:
 	make check
 	make fix
