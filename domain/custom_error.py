@@ -132,3 +132,9 @@ class ConcurrentUpdateError(DomainError):
             )
 
         super().__init__(self.message)
+
+
+class SameNameError(DomainError):
+    def __init__(self, first_name_str: str):
+        self.message = f"ชื่อเดิม คือ {first_name_str} ยังไม่เปลี่ยนชื่อ"
+        super().__init__(self.message)
