@@ -2,7 +2,7 @@ from uuid import uuid4, UUID
 
 from pytest import raises
 
-from domain.custom_error import DoNotChangeIDError
+from domain.custom_error import DoNotChangeIDError, SameNameError
 from domain.value_object import StaffRole, HashedPassword
 
 
@@ -34,3 +34,18 @@ def test_staff_whit_password_should_hashed_password_and_verify_valid(new_staff_d
     assert staff.hashed_password.verify("Paa-TopIT_12123") is True
     # 4. ลองส่งรหัสผิดเข้าไป ต้องคืนค่า False
     assert staff.hashed_password.verify("wrong_password") is False
+
+
+def test_change_first_name_should_succeed(new_staff_doctor):
+    new_staff_doctor.change_first_name("PaaTopIT")
+    assert new_staff_doctor.first_name.value == "PaaTopIT"
+    assert new_staff_doctor.version.current_number == 2
+
+
+def test_change_same_name_should_raise_same_name_error(new_staff_doctor):
+    assert new_staff_doctor.first_name.value == "ณัฐพงศ์"
+    name = "ณัฐพงศ์"
+    with raises(SameNameError) as exception:
+        new_staff_doctor.change_first_name(name)
+
+    assert f"ชื่อเดิม คือ {name} ยังไม่เปลี่ยนชื่อ" in str(exception.value)

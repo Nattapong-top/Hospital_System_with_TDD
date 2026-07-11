@@ -2,7 +2,7 @@ from uuid import uuid4, UUID
 
 from pydantic import Field
 
-from domain.custom_error import DoNotChangeIDError
+from domain.custom_error import DoNotChangeIDError, SameNameError
 from domain.entities import DomainEntity
 from domain.value_object import (
     Name,
@@ -84,6 +84,6 @@ class Staff(DomainEntity):
 
     def change_first_name(self, first_name_str: str) -> None:
         if first_name_str == self.first_name.value:
-            raise ValueError("ชื่อเดิม")
+            raise SameNameError(first_name_str)
         self.first_name = Name(value=first_name_str)
         self.version = self.version.increment()
