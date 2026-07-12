@@ -10,7 +10,7 @@ from domain.custom_error import (
 )
 from domain.domain_service.staff_service import StaffService
 from domain.hospital_registry import HospitalRegistry
-from domain.value_object import StaffRole, HashedPassword
+from domain.value_object import StaffRole, HashedPassword, Username
 
 
 def test_staff_service_register_new_staff_should_succeed(InMem_staff_repo):
@@ -54,6 +54,23 @@ def test_staff_service_register_staff_with_staff_id_should_type_uuid_valid(
     assert staff_2.staff_id is not None
     assert isinstance(staff_1.staff_id, UUID)
     assert staff_1.staff_id != staff_2.staff_id
+
+
+def test_staff_InMem_repo_is_username_exist_already_should_return_true(
+    new_register_staff, InMem_staff_repo
+):
+    repo = InMem_staff_repo
+    repo.save(new_register_staff)
+    result = repo.is_username_exists(new_register_staff.username)
+    assert result is True
+
+
+def test_staff_InMem_repo_get_by_username_should_return_none_when_not_exist(
+    InMem_staff_repo,
+):
+    repo = InMem_staff_repo
+    result = repo.is_username_exists(Username(id="have-username"))
+    assert result is False
 
 
 def test_staff_service_register_staff_should_save_to_repo_success():

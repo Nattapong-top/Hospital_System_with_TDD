@@ -78,6 +78,10 @@ class StaffRepository(ABC):
         pass
 
     @abstractmethod
+    def is_username_exists(self, username: Username) -> bool:
+        pass
+
+    @abstractmethod
     def get_by_staff_id(self, staff_id: UUID) -> Optional[Staff]:
         """ค้าหาพนักงานด้วย staff_id"""
         pass

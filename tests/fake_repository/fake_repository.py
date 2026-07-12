@@ -78,6 +78,12 @@ class FakeQueueRecord(QueueRecord):
 
 
 class InMemoryStaffRepository(StaffRepository):
+    def is_username_exists(self, username: Username) -> bool:
+        for _, staff_vo in self._staffs.items():
+            if staff_vo.username == username:
+                return True
+        return False
+
     def __init__(self) -> None:
         self._staffs: dict[UUID, Staff] = {}
 
