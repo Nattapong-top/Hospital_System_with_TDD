@@ -63,6 +63,14 @@ class PostgresStaffRepository(StaffRepository):
         SELECT EXISTS (SELECT 1 FROM staffs WHERE national_id = %s)
     """
 
+    _SELECT_USERNAME_QUERY: LiteralString = """
+        SELECT * FROM staffs WHERE username = %s
+    """
+
+    _SELECT_USERNAME_EXISTS_QUERY: LiteralString = """
+        SELECT EXISTS (SELECT 1 FROM staffs WHERE username = %s)
+    """
+
     @staticmethod
     def _map_staff_to_tuple(staff: Staff) -> tuple:
         return (
@@ -140,7 +148,21 @@ class PostgresStaffRepository(StaffRepository):
         self.db_connect.commit()
 
     def get_by_username(self, username: Username) -> Optional[Staff]:
-        raise NotImplementedError
+        with self.db_connect.cursor(row_factory=dict_row) as cursor:
+            cursor.execute(self._SELECT_USERNAME_QUERY, (username.id,))
+            row = cursor.fetchone()
+        if row is None:
+            return None
+        return self._map_row_to_staff(row)
+
+    def is_username_exists(self, username: Username) -> bool:
+        with self.db_connect.cursor() as cursor:
+            cursor.execute(self._SELECT_USERNAME_EXISTS_QUERY, (str(username.id),))
+            boolean = cursor.fetchone()
+
+            if boolean is None:
+                return False
+            return boolean[0]
 
     def get_by_staff_id(self, staff_id: UUID) -> Optional[Staff]:
         with self.db_connect.cursor(row_factory=dict_row) as cursor:
