@@ -5,6 +5,7 @@ pydantic==2.12.5
 pydantic-settings==2.14.1
 
 psycopg[binary]==3.3.4
+sqlalchemy==2.0.51
 
 passlib==1.7.4
 bcrypt==5.0.0

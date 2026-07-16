@@ -6,4 +6,5 @@ pytest_plugins = [
     "tests.fixtures.fixture_domain",
     "tests.fixtures.fixture_api",
     "tests.fixtures.fixture_repo",
+    "tests.fixtures.fixture_sqlalchemy",
 ]
