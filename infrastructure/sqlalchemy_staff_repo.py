@@ -1,10 +1,10 @@
 from datetime import date
 from uuid import UUID
 
+from sqlalchemy import select
 from sqlalchemy.orm import Session
-from domain.staff_entities import Staff
-from infrastructure.orm.staff_orm_model import StaffOrmModel
 
+from domain.staff_entities import Staff
 from domain.value_object import (
     NationalID,
     Username,
@@ -15,9 +15,37 @@ from domain.value_object import (
     StaffRole,
     Version,
 )
+from infrastructure.orm.staff_orm_model import StaffOrmModel
 
 
 class SqlAlchemyStaffRepository:
+
+    # method helper
+    @staticmethod
+    def _to_staff_entity(staff_orm: StaffOrmModel) -> Staff:
+        staff = Staff(
+            staff_id=staff_orm.staff_id,
+            username=Username(id=staff_orm.username),
+            hashed_password=HashedPassword(value=staff_orm.hashed_password),
+            national_id=NationalID(id=staff_orm.national_id),
+            first_name=Name(value=staff_orm.first_name),
+            last_name=Name(value=staff_orm.last_name),
+            date_of_birth=DateOfBirth(
+                year=staff_orm.date_of_birth.year,
+                month=staff_orm.date_of_birth.month,
+                day=staff_orm.date_of_birth.day,
+            ),
+            phone_number=PhoneNumber(value=staff_orm.phone_number),
+            role=StaffRole(staff_orm.role),
+            version=Version(
+                current_number=staff_orm.version,
+                previous_number=staff_orm.version,
+            ),
+            is_active=bool(staff_orm.is_active),
+        )
+        return staff
+
+    # main method
     def __init__(self, session: Session) -> None:
         self.session = session
 
@@ -48,23 +76,16 @@ class SqlAlchemyStaffRepository:
 
         if staff_orm is None:
             return None
-        return Staff(
-            staff_id=staff_orm.staff_id,
-            username=Username(id=staff_orm.username),
-            hashed_password=HashedPassword(value=staff_orm.hashed_password),
-            national_id=NationalID(id=staff_orm.national_id),
-            first_name=Name(value=staff_orm.first_name),
-            last_name=Name(value=staff_orm.last_name),
-            date_of_birth=DateOfBirth(
-                year=staff_orm.date_of_birth.year,
-                month=staff_orm.date_of_birth.month,
-                day=staff_orm.date_of_birth.day,
-            ),
-            phone_number=PhoneNumber(value=staff_orm.phone_number),
-            role=StaffRole(staff_orm.role),
-            version=Version(
-                current_number=staff_orm.version,
-                previous_number=staff_orm.version,
-            ),
-            is_active=bool(staff_orm.is_active),
-        )
+        staff = self._to_staff_entity(staff_orm)
+        return staff
+
+    def get_by_username(self, username: Username) -> Staff | None:
+
+        statement = select(StaffOrmModel).where(StaffOrmModel.username == username.id)
+
+        staff_orm = self.session.scalars(statement).one_or_none()
+
+        if staff_orm is None:
+            return None
+        staff = self._to_staff_entity(staff_orm)
+        return staff
