@@ -1,21 +1,22 @@
 from datetime import date
 from uuid import UUID
 
-from sqlalchemy import select, exists
+from sqlalchemy import exists, select, update
 from sqlalchemy.orm import Session
 
 from domain.staff_entities import Staff
 from domain.value_object import (
-    NationalID,
-    Username,
+    DateOfBirth,
     HashedPassword,
     Name,
-    DateOfBirth,
+    NationalID,
     PhoneNumber,
     StaffRole,
+    Username,
     Version,
 )
 from infrastructure.orm.staff_orm_model import StaffOrmModel
+from domain.custom_error import ConcurrentUpdateError
 
 
 class SqlAlchemyStaffRepository:
@@ -94,3 +95,27 @@ class SqlAlchemyStaffRepository:
         statement = select(exists().where(StaffOrmModel.username == username.id))
         result = bool(self.session.scalars(statement).one())
         return result
+
+    def update(self, staff: Staff) -> None:
+
+        statement = (
+            update(StaffOrmModel)
+            .where(
+                StaffOrmModel.staff_id == staff.staff_id,
+                StaffOrmModel.version == staff.version.previous_number,
+            )
+            .values(
+                is_active=bool(staff.is_active),
+                version=staff.version.current_number,
+            )
+        )
+
+        result = self.session.execute(statement)
+
+        if result.rowcount == 0:
+            self.session.rollback()
+            raise ConcurrentUpdateError(
+                entity_name="ข้อมูลพนักงาน", entity_id=staff.staff_id
+            )
+
+        self.session.commit()
