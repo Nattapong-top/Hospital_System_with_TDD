@@ -1,7 +1,7 @@
 from datetime import date
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import select, exists
 from sqlalchemy.orm import Session
 
 from domain.staff_entities import Staff
@@ -89,3 +89,8 @@ class SqlAlchemyStaffRepository:
             return None
         staff = self._to_staff_entity(staff_orm)
         return staff
+
+    def is_username_exists(self, username: Username) -> bool:
+        statement = select(exists().where(StaffOrmModel.username == username.id))
+        result = bool(self.session.scalars(statement).one())
+        return result

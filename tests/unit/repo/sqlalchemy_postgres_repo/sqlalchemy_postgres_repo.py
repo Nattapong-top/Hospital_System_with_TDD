@@ -23,3 +23,16 @@ def test_sqlalchemy_staff_repo_get_username_shout_return_none_when_dont_username
     repo = SqlAlchemyStaffRepository(session=db_session)
     result = repo.get_by_username(new_staff_nurse.username)
     assert result is None
+
+
+def test_sqlalchemy_staff_repo_is_username_exists(new_staff_doctor, db_session):
+    repo = SqlAlchemyStaffRepository(session=db_session)
+    repo.save(new_staff_doctor)
+    result = repo.is_username_exists(new_staff_doctor.username)
+    assert result is True
+
+
+def test_sqlalchemy_staff_repo_is_username_not_exists(new_staff_nurse, db_session):
+    repo = SqlAlchemyStaffRepository(session=db_session)
+    result = repo.is_username_exists(new_staff_nurse.username)
+    assert result is False
