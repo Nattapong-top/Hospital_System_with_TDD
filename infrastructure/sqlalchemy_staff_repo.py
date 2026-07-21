@@ -1,7 +1,8 @@
 from datetime import date
+from typing import cast, Any
 from uuid import UUID
 
-from sqlalchemy import exists, select, update
+from sqlalchemy import exists, select, update, CursorResult
 from sqlalchemy.orm import Session
 
 from domain.staff_entities import Staff
@@ -96,7 +97,7 @@ class SqlAlchemyStaffRepository:
         result = bool(self.session.scalars(statement).one())
         return result
 
-    def update(self, staff: Staff) -> None:
+    def update_status(self, staff: Staff) -> None:
 
         statement = (
             update(StaffOrmModel)
@@ -110,12 +111,46 @@ class SqlAlchemyStaffRepository:
             )
         )
 
-        result = self.session.execute(statement)
-
+        result = cast(
+            CursorResult[Any],
+            self.session.execute(statement),
+        )
         if result.rowcount == 0:
             self.session.rollback()
             raise ConcurrentUpdateError(
                 entity_name="ข้อมูลพนักงาน", entity_id=staff.staff_id
             )
 
+        self.session.commit()
+
+    def update_profile(self, staff: Staff) -> None:
+        statement = (
+            update(StaffOrmModel)
+            .where(
+                StaffOrmModel.staff_id == staff.staff_id,
+                StaffOrmModel.version == staff.version.previous_number,
+            )
+            .values(
+                first_name=staff.first_name.value,
+                last_name=staff.last_name.value,
+                date_of_birth=date(
+                    year=staff.date_of_birth.year,
+                    month=staff.date_of_birth.month,
+                    day=staff.date_of_birth.day,
+                ),
+                phone_number=staff.phone_number.value,
+                version=staff.version.current_number,
+            )
+        )
+
+        result = cast(
+            CursorResult[Any],
+            self.session.execute(statement),
+        )
+
+        if result.rowcount == 0:
+            self.session.rollback()
+            raise ConcurrentUpdateError(
+                entity_name="ข้อมูลพนักงาน", entity_id=staff.staff_id
+            )
         self.session.commit()
